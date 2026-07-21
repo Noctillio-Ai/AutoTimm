@@ -198,12 +198,24 @@ def compute_fcos_detection_loss(
 
         cls_out_flat = cls_out.permute(0, 2, 3, 1).reshape(-1, num_classes)
         cls_targets_flat = cls_targets.reshape(-1)
-        valid_mask = cls_targets_flat >= 0
+        pos_cls_mask = cls_targets_flat >= 0
 
-        if valid_mask.any():
-            total_cls_loss = total_cls_loss + focal_loss_fn(
-                cls_out_flat, cls_targets_flat
-            )
+        # FCOS uses independent sigmoid classifiers. Every unassigned point is
+        # a background negative (an all-zero target), not an ignored sample.
+        # Ignoring them means the detector never learns to suppress false
+        # positives and an all-background batch has no classification gradient.
+        dense_cls_targets = torch.zeros_like(cls_out_flat)
+        if pos_cls_mask.any():
+            positive_labels = cls_targets_flat[pos_cls_mask]
+            if (positive_labels >= num_classes).any():
+                raise ValueError(
+                    "Target class index exceeds num_classes: "
+                    f"max label={positive_labels.max().item()}, "
+                    f"num_classes={num_classes}"
+                )
+            dense_cls_targets[pos_cls_mask, positive_labels] = 1.0
+
+        total_cls_loss = total_cls_loss + focal_loss_fn(cls_out_flat, dense_cls_targets)
 
         pos_mask = cls_targets >= 0  # [B, H, W]
 

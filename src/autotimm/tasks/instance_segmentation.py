@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import datetime as _dt
 import getpass
 from typing import Any
@@ -28,6 +29,17 @@ from autotimm.tasks._fcos_targets import (
     compute_fcos_detection_loss,
     decode_fcos_detections,
 )
+
+
+@contextmanager
+def _temporary_eval_mode(module: nn.Module):
+    """Run inference without leaking an evaluation-mode state change."""
+    was_training = module.training
+    module.eval()
+    try:
+        yield
+    finally:
+        module.train(was_training)
 
 
 class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
@@ -498,7 +510,9 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
             all_labels.append(labels)
 
         if len(all_rois) == 0:
-            return torch.tensor(0.0, device=device)
+            # Keep the zero loss attached to the graph so an all-empty batch
+            # remains safe to backpropagate even when no other loss contributes.
+            return feature_map.sum() * 0.0
 
         # Concatenate all ROIs
         rois = torch.cat(all_rois, dim=0)  # [total_N, 5]
@@ -532,9 +546,7 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
             size=(self.mask_size, self.mask_size),
             mode="bilinear",
             align_corners=False,
-        ).squeeze(
-            1
-        )  # [total_N, mask_size, mask_size]
+        ).squeeze(1)  # [total_N, mask_size, mask_size]
 
         # Compute mask loss
         loss = self.mask_loss_fn(mask_logits, target_masks_resized)
@@ -697,8 +709,7 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
         Returns:
             List of dicts with 'boxes', 'labels', 'scores', 'masks' for each image
         """
-        self.eval()
-        with torch.inference_mode():
+        with _temporary_eval_mode(self), torch.inference_mode():
             features = self.backbone(images)
             fpn_features = self.fpn(features)
             cls_outputs, reg_outputs, centerness_outputs = self.detection_head(

@@ -108,7 +108,7 @@ def test_compute_iou_loss_partial_overlap_positive():
 # ---------------------------------------------------------------------------
 
 
-def test_compute_fcos_detection_loss_zero_targets_is_zero():
+def test_compute_fcos_detection_loss_background_only_has_classification_gradient():
     from autotimm.losses import FocalLoss
 
     cls_outputs = [torch.randn(2, 5, 8, 8, requires_grad=True)]
@@ -129,10 +129,14 @@ def test_compute_fcos_detection_loss_zero_targets_is_zero():
         focal_loss_fn=FocalLoss(reduction="sum"),
         num_classes=5,
     )
-    assert losses["cls_loss"].item() == pytest.approx(0.0)
+    assert losses["cls_loss"].item() > 0
     assert losses["reg_loss"].item() == pytest.approx(0.0)
     assert losses["centerness_loss"].item() == pytest.approx(0.0)
     assert losses["num_pos"] == 1  # max(num_pos, 1) floor
+
+    losses["cls_loss"].backward()
+    assert cls_outputs[0].grad is not None
+    assert cls_outputs[0].grad.abs().sum().item() > 0
 
 
 def test_compute_fcos_detection_loss_with_targets_nonzero_and_differentiable():

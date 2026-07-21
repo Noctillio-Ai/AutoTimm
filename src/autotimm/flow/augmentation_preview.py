@@ -32,7 +32,6 @@ def preview(
     for _ in range(count):
         augmented = transform(img)
         if hasattr(augmented, "numpy"):
-
             if augmented.shape[0] == 3:
                 arr = (
                     (augmented.permute(1, 2, 0).numpy() * 255)

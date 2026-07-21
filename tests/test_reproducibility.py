@@ -2,10 +2,13 @@
 Tests for reproducibility features: seeding and deterministic mode.
 """
 
+import pickle
+
 import pytest
 import torch
 import numpy as np
 from autotimm import AutoTrainer, seed_everything
+from autotimm.core.utils import safe_torch_load
 from autotimm.tasks.classification import ImageClassifier
 
 
@@ -52,6 +55,38 @@ class TestSeedEverything:
 
         # Should be different
         assert not torch.allclose(rand1, rand2)
+
+
+class TestSafeTorchLoad:
+    """Tests for restricted checkpoint loading."""
+
+    def test_retries_unsafe_load_only_after_unpickling_rejection(self, monkeypatch):
+        calls = []
+
+        def load_checkpoint(*args, **kwargs):
+            calls.append(kwargs["weights_only"])
+            if kwargs["weights_only"]:
+                raise pickle.UnpicklingError("unsupported checkpoint metadata")
+            return {"state_dict": {}}
+
+        monkeypatch.setattr(torch, "load", load_checkpoint)
+
+        assert safe_torch_load("legacy.ckpt") == {"state_dict": {}}
+        assert calls == [True, False]
+
+    def test_missing_file_is_not_retried_with_unsafe_unpickling(self, monkeypatch):
+        calls = []
+
+        def missing_file(*args, **kwargs):
+            calls.append(kwargs["weights_only"])
+            raise FileNotFoundError("checkpoint does not exist")
+
+        monkeypatch.setattr(torch, "load", missing_file)
+
+        with pytest.raises(FileNotFoundError, match="checkpoint does not exist"):
+            safe_torch_load("missing.ckpt")
+
+        assert calls == [True]
 
 
 class TestModelLevelSeeding:
