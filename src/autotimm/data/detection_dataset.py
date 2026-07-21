@@ -324,7 +324,7 @@ def detection_collate_fn(batch: list[dict[str, Any]]) -> dict[str, Any]:
 
     Returns:
         Dict with:
-            - 'images': Tensor [B, C, H, W]
+            - 'image': Tensor [B, C, H, W]
             - 'boxes': List of B tensors, each [N_i, 4]
             - 'labels': List of B tensors, each [N_i]
             - 'image_ids': List of B ints
@@ -337,7 +337,7 @@ def detection_collate_fn(batch: list[dict[str, Any]]) -> dict[str, Any]:
     orig_sizes = torch.stack([sample["orig_size"] for sample in batch])
 
     return {
-        "images": images,
+        "image": images,
         "boxes": boxes,
         "labels": labels,
         "image_ids": image_ids,

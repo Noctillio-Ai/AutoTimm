@@ -21,6 +21,7 @@ from autotimm.data.transforms import (
     get_train_transforms,
 )
 
+
 class ImageDataModule(pl.LightningDataModule):
     """Lightning data module for image classification.
 
@@ -167,7 +168,7 @@ class ImageDataModule(pl.LightningDataModule):
 
         if eval_transforms is not None:
             self.eval_transforms = eval_transforms
-        else:
+        elif not (transform_config is not None and backbone is not None):
             self.eval_transforms = self._default_eval_transforms()
 
         self.train_dataset = None
@@ -388,7 +389,6 @@ class ImageDataModule(pl.LightningDataModule):
             shuffle=False,
             **self._loader_kwargs(),
         )
-
 
 
 class _AlbumentationsBuiltinWrapper:

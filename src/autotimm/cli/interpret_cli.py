@@ -14,7 +14,6 @@ import sys
 import torch
 from PIL import Image
 
-
 TASK_CLASS_MAP = {
     "ImageClassifier": "autotimm.tasks.classification.ImageClassifier",
     "ObjectDetector": "autotimm.tasks.object_detection.ObjectDetector",
@@ -95,7 +94,9 @@ def _load_model(checkpoint: str, task_class_name: str, hparams_yaml: str | None 
         hp = _parse_hparams_yaml(hparams_yaml)
     else:
         # Fallback: peek into the checkpoint's hyper_parameters dict.
-        ckpt = torch.load(checkpoint, map_location="cpu", weights_only=False)
+        from autotimm.core.utils import safe_torch_load
+
+        ckpt = safe_torch_load(checkpoint, map_location="cpu")
         hp = ckpt.get("hyper_parameters", {})
         if isinstance(hp, dict):
             hp = hp.get("init_args", hp)
@@ -155,7 +156,10 @@ def _run_method(model, image: Image.Image, method_id: str, output_dir: str):
 
     # Check if this is an attention method on a non-ViT model
     if method_id in ATTENTION_METHODS and not _is_vit(model):
-        return None, f"Not a Vision Transformer model — {METHOD_MAP[method_id]} requires attention layers"
+        return (
+            None,
+            f"Not a Vision Transformer model — {METHOD_MAP[method_id]} requires attention layers",
+        )
 
     constructor = constructors.get(method_id)
     if constructor is None:
@@ -189,7 +193,9 @@ def _get_predicted_class(model, image: Image.Image) -> int:
     with torch.inference_mode():
         output = model(input_tensor)
         if isinstance(output, dict):
-            output = output.get("logits", output.get("output", next(iter(output.values()))))
+            output = output.get(
+                "logits", output.get("output", next(iter(output.values())))
+            )
         return output.argmax(dim=1).item()
 
 

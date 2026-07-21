@@ -21,6 +21,7 @@ from autotimm.data.detection_transforms import (
 )
 from autotimm.data.transform_config import TransformConfig
 
+
 class DetectionDataModule(pl.LightningDataModule):
     """Lightning data module for object detection.
 
@@ -173,7 +174,7 @@ class DetectionDataModule(pl.LightningDataModule):
 
         if eval_transforms is not None:
             self.eval_transforms = eval_transforms
-        else:
+        elif not (transform_config is not None and backbone is not None):
             self.eval_transforms = detection_eval_transforms(image_size=image_size)
 
         self.train_dataset = None
@@ -307,4 +308,3 @@ class DetectionDataModule(pl.LightningDataModule):
             shuffle=False,
             **self._loader_kwargs(),
         )
-

@@ -433,10 +433,10 @@ class TestDetectionDataModuleCSV:
             dm.setup("fit")
 
             batch = next(iter(dm.train_dataloader()))
-            assert "images" in batch
+            assert "image" in batch
             assert "boxes" in batch
             assert "labels" in batch
-            assert batch["images"].ndim == 4
+            assert batch["image"].ndim == 4
 
 
 # ---------------------------------------------------------------------------

@@ -293,8 +293,22 @@ def _print_comparison(comparison: dict) -> None:
     from autotimm.core.logging import log_table
 
     # Build comparison table
-    features = ["Backend", "Speed", "Augmentations", "BBox/Mask Support", "Best For", "Presets"]
-    feature_keys = ["backend", "speed", "augmentations", "bbox_mask_support", "best_for", "presets"]
+    features = [
+        "Backend",
+        "Speed",
+        "Augmentations",
+        "BBox/Mask Support",
+        "Best For",
+        "Presets",
+    ]
+    feature_keys = [
+        "backend",
+        "speed",
+        "augmentations",
+        "bbox_mask_support",
+        "best_for",
+        "presets",
+    ]
 
     rows = []
     for feature, key in zip(features, feature_keys):
@@ -306,7 +320,11 @@ def _print_comparison(comparison: dict) -> None:
             albu = ", ".join(albu)
         rows.append([feature, tv, albu])
 
-    log_table("Transform Backend Comparison", ["Feature", "Torchvision", "Albumentations"], rows)
+    log_table(
+        "Transform Backend Comparison",
+        ["Feature", "Torchvision", "Albumentations"],
+        rows,
+    )
 
     # Print pros and cons
     lines = ["\nTorchvision - Pros:"]

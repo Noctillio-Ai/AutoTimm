@@ -33,6 +33,7 @@ def _ensure_safe_multiprocessing() -> None:
             # Already set — nothing to do.
             pass
 
+
 # Module-level flag to ensure watermark is printed only once per session
 _WATERMARK_PRINTED = False
 
@@ -284,8 +285,10 @@ class AutoTrainer(pl.Trainer):
         else:
             resolved_logger = logger
 
-        if callbacks is None:
-            callbacks = []
+        # Copy rather than mutate the caller's list in place — appending
+        # directly to it would silently modify a list the caller may reuse
+        # elsewhere (e.g. across multiple AutoTrainer instances).
+        callbacks = list(callbacks) if callbacks is not None else []
 
         if enable_checkpointing and checkpoint_monitor:
             has_checkpoint_cb = any(
@@ -389,10 +392,16 @@ class AutoTrainer(pl.Trainer):
             self._is_tuning = True
             try:
                 if self._json_progress:
-                    _emit({"event": "tuning_started"}, log_file=self._json_progress_log_file)
+                    _emit(
+                        {"event": "tuning_started"},
+                        log_file=self._json_progress_log_file,
+                    )
                 self._run_tuning(model, train_dataloaders, val_dataloaders, datamodule)
                 if self._json_progress:
-                    _emit({"event": "tuning_complete"}, log_file=self._json_progress_log_file)
+                    _emit(
+                        {"event": "tuning_complete"},
+                        log_file=self._json_progress_log_file,
+                    )
             finally:
                 self._is_tuning = False
 
@@ -463,15 +472,15 @@ class AutoTrainer(pl.Trainer):
         from pathlib import Path
 
         ckpt_cb = None
-        for cb in (self.callbacks or []):
+        for cb in self.callbacks or []:
             if isinstance(cb, pl.callbacks.ModelCheckpoint) and cb.monitor is not None:
                 ckpt_cb = cb
                 break
 
         if ckpt_cb is None:
             logger.warning(
-                'No ModelCheckpoint configured with a monitored metric. '
-                'Falling back to ckpt_path=None (current model weights) '
+                "No ModelCheckpoint configured with a monitored metric. "
+                "Falling back to ckpt_path=None (current model weights) "
                 'instead of ckpt_path="best".'
             )
             return None
@@ -492,7 +501,9 @@ class AutoTrainer(pl.Trainer):
                 root,
             ]:
                 if candidate.is_dir():
-                    ckpts = sorted(candidate.glob("best-*.ckpt"), key=lambda p: p.stat().st_mtime)
+                    ckpts = sorted(
+                        candidate.glob("best-*.ckpt"), key=lambda p: p.stat().st_mtime
+                    )
                     if ckpts:
                         ckpt_dir = candidate
                         break
@@ -504,13 +515,18 @@ class AutoTrainer(pl.Trainer):
                     if log_dir:
                         candidate = Path(log_dir) / "checkpoints"
                         if candidate.is_dir():
-                            ckpts = sorted(candidate.glob("best-*.ckpt"), key=lambda p: p.stat().st_mtime)
+                            ckpts = sorted(
+                                candidate.glob("best-*.ckpt"),
+                                key=lambda p: p.stat().st_mtime,
+                            )
                             if ckpts:
                                 ckpt_dir = candidate
                                 break
 
         if ckpt_dir and ckpt_dir.is_dir():
-            ckpts = sorted(ckpt_dir.glob("best-*.ckpt"), key=lambda p: p.stat().st_mtime)
+            ckpts = sorted(
+                ckpt_dir.glob("best-*.ckpt"), key=lambda p: p.stat().st_mtime
+            )
             if ckpts:
                 best = str(ckpts[-1])
                 logger.info(f"Found best checkpoint on disk: {best}")
@@ -518,7 +534,7 @@ class AutoTrainer(pl.Trainer):
 
         logger.warning(
             'ckpt_path="best" requested but no checkpoint file found on disk. '
-            'Falling back to ckpt_path=None (current model weights).'
+            "Falling back to ckpt_path=None (current model weights)."
         )
         return None
 

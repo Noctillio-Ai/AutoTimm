@@ -39,9 +39,7 @@ def collect() -> dict:
                     val = val.strip().rstrip(".")
                     if val.isdigit():
                         pages[key.strip()] = int(val)
-            ps = int(
-                subprocess.check_output(["sysctl", "-n", "vm.pagesize"]).strip()
-            )
+            ps = int(subprocess.check_output(["sysctl", "-n", "vm.pagesize"]).strip())
             anonymous = pages.get("Anonymous pages", 0)
             stored = pages.get("Pages stored in compressor", 0)
             wired = pages.get("Pages wired down", 0)

@@ -310,12 +310,18 @@ def list_yolox_heads(verbose: bool = False) -> list[str]:
             )
         lines.append("=" * 90)
         lines.append("\nYOLOXHead features:")
-        lines.append("  - Decoupled architecture: Separate convolutions for cls and reg")
+        lines.append(
+            "  - Decoupled architecture: Separate convolutions for cls and reg"
+        )
         lines.append("  - Anchor-free: Grid-based predictions without anchor boxes")
-        lines.append("  - Multi-scale: Predictions at 3 feature levels (strides 8, 16, 32)")
+        lines.append(
+            "  - Multi-scale: Predictions at 3 feature levels (strides 8, 16, 32)"
+        )
         lines.append("  - Group normalization: Better stability than batch norm")
         lines.append("  - SiLU activation: Smooth activation function (Swish)")
-        lines.append("  - Per-level predictions: Each feature level processed independently\n")
+        lines.append(
+            "  - Per-level predictions: Each feature level processed independently\n"
+        )
         logger.info("\n".join(lines))
 
     return list(heads_info.keys())

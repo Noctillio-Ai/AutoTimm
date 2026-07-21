@@ -9,8 +9,8 @@ Usage::
     python -m autotimm.flow.push_to_hub --config '{"repo_id": "...", ...}'
     # or via env var (used by NightFlow):
     HF_PUSH_CFG='{"repo_id": "...", ...}' python -m autotimm.flow.push_to_hub
-    # or
-    autotimm-flow push-to-hub --repo-id user/model --token hf_... --ckpt-dir /path/to/checkpoints
+    # or (token read from HF_TOKEN env var to avoid leaking it into shell history):
+    HF_TOKEN=hf_... autotimm-flow push-to-hub --repo-id user/model --ckpt-dir /path/to/checkpoints
 """
 
 from __future__ import annotations
@@ -27,7 +27,9 @@ def push(cfg: dict) -> dict:
     try:
         from huggingface_hub import HfApi, create_repo
     except ImportError:
-        return {"error": "huggingface_hub is not installed. Run: pip install huggingface_hub"}
+        return {
+            "error": "huggingface_hub is not installed. Run: pip install huggingface_hub"
+        }
 
     repo_id = cfg["repo_id"]
     token = cfg["token"]
@@ -53,7 +55,9 @@ def push(cfg: dict) -> dict:
                 ckpt_file = os.path.join(ckpt_dir, f)
 
     if not ckpt_file:
-        return {"error": "No checkpoint file found. Training may not have saved a model yet."}
+        return {
+            "error": "No checkpoint file found. Training may not have saved a model yet."
+        }
 
     api = HfApi(token=token)
 
@@ -66,9 +70,11 @@ def push(cfg: dict) -> dict:
     # Strip optimizer state from checkpoint to reduce size
     import torch
 
+    from autotimm.core.utils import safe_torch_load
+
     clean_ckpt = None
     try:
-        raw = torch.load(ckpt_file, map_location="cpu", weights_only=False)
+        raw = safe_torch_load(ckpt_file, map_location="cpu")
         if isinstance(raw, dict):
             keep_keys = {
                 "state_dict",
@@ -255,7 +261,15 @@ def main() -> None:
         help="JSON config string (alternative to HF_PUSH_CFG env var)",
     )
     parser.add_argument("--repo-id", default=None, help="HuggingFace repo ID")
-    parser.add_argument("--token", default=None, help="HuggingFace token")
+    parser.add_argument(
+        "--token",
+        default=None,
+        help=(
+            "HuggingFace token. Prefer setting the HF_TOKEN env var instead — "
+            "a token passed on the command line is visible in shell history "
+            "and process listings."
+        ),
+    )
     parser.add_argument("--ckpt-dir", default=None, help="Checkpoint directory")
     parser.add_argument("--hparams-path", default=None, help="Path to hparams.yaml")
     parser.add_argument("--task-type", default="Classification")
@@ -276,10 +290,10 @@ def main() -> None:
         cfg = json.loads(args.config)
     elif "HF_PUSH_CFG" in os.environ:
         cfg = json.loads(os.environ["HF_PUSH_CFG"])
-    elif args.repo_id and args.token and args.ckpt_dir:
+    elif args.repo_id and (args.token or os.environ.get("HF_TOKEN")) and args.ckpt_dir:
         cfg = {
             "repo_id": args.repo_id,
-            "token": args.token,
+            "token": args.token or os.environ.get("HF_TOKEN"),
             "ckpt_dir": args.ckpt_dir,
             "hparams_path": args.hparams_path or "",
             "task_type": args.task_type,
@@ -297,7 +311,9 @@ def main() -> None:
     else:
         print(
             json.dumps(
-                {"error": "Provide --config, set HF_PUSH_CFG env var, or pass --repo-id --token --ckpt-dir"}
+                {
+                    "error": "Provide --config, set HF_PUSH_CFG env var, or pass --repo-id --token --ckpt-dir"
+                }
             )
         )
         sys.exit(1)

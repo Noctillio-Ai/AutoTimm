@@ -146,6 +146,8 @@ class COCOInstanceDataset(Dataset):
             img_path = self.data_dir / self.split / img_info["file_name"]
 
         image = cv2.imread(str(img_path))
+        if image is None:
+            raise RuntimeError(f"Failed to load image: {img_path}")
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         height, width = image.shape[:2]
 

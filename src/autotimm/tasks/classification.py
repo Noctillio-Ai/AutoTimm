@@ -11,7 +11,11 @@ import torch
 import torch.nn as nn
 import torchmetrics
 
-from autotimm.core.backbone import BackboneConfig, create_backbone, get_backbone_out_features
+from autotimm.core.backbone import (
+    BackboneConfig,
+    create_backbone,
+    get_backbone_out_features,
+)
 from autotimm.data.transform_config import TransformConfig
 from autotimm.heads import ClassificationHead
 from autotimm.losses import get_loss_registry
@@ -148,17 +152,21 @@ class ImageClassifier(PreprocessingMixin, pl.LightningModule):
 
         # Normalize backbone to a plain string so it survives checkpoint
         # round-trip (BackboneConfig is not serialised by save_hyperparameters).
-        backbone = backbone.model_name if hasattr(backbone, "model_name") else str(backbone)
+        backbone = (
+            backbone.model_name if hasattr(backbone, "model_name") else str(backbone)
+        )
 
         super().__init__()
         self.save_hyperparameters(
             ignore=["metrics", "logging_config", "transform_config", "loss_fn"]
         )
-        self.hparams.update({
-            "backbone_name": backbone,
-            "username": getpass.getuser(),
-            "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
-        })
+        self.hparams.update(
+            {
+                "backbone_name": backbone,
+                "username": getpass.getuser(),
+                "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
+            }
+        )
 
         # Backbone and head
         self.backbone = create_backbone(backbone)
@@ -244,7 +252,10 @@ class ImageClassifier(PreprocessingMixin, pl.LightningModule):
         # is typically unavailable; compilation is deferred so the try/except
         # at init time cannot catch the error.
         import sys as _sys
-        _mps_available = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+
+        _mps_available = (
+            hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+        )
         _skip_compile = _mps_available or _sys.platform == "win32"
         if compile_model and not _skip_compile:
             try:

@@ -235,7 +235,14 @@ class CenternessLoss(nn.Module):
 
 
 class FCOSLoss(nn.Module):
-    """Combined FCOS loss: Focal Loss + GIoU Loss + Centerness Loss.
+    """Combined FCOS loss: Focal Loss + IoU Loss + Centerness Loss.
+
+    The regression term is a simplified IoU loss computed directly from
+    predicted/target LTRB distances (see ``_compute_reg_loss``) — it has no
+    enclosing-box penalty term, so it is not true GIoU. Computing an actual
+    GIoU loss would require converting LTRB distances to absolute boxes using
+    the grid center of each location, which isn't threaded through this
+    wrapper's inputs.
 
     This wrapper computes and combines the three loss components used
     in FCOS-style object detection.
@@ -265,7 +272,6 @@ class FCOSLoss(nn.Module):
         self.centerness_weight = centerness_weight
 
         self.focal_loss = FocalLoss(alpha=focal_alpha, gamma=focal_gamma)
-        self.giou_loss = GIoULoss()
         self.centerness_loss = CenternessLoss()
 
     def forward(

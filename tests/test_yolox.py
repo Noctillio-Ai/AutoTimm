@@ -84,7 +84,7 @@ def test_object_detector_yolox_training_step():
 
     # Create dummy batch
     batch = {
-        "images": torch.randn(2, 3, 640, 640),
+        "image": torch.randn(2, 3, 640, 640),
         "boxes": [
             torch.tensor([[100, 100, 200, 200], [300, 300, 400, 400]]),
             torch.tensor([[150, 150, 250, 250]]),

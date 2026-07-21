@@ -62,8 +62,8 @@ jobs:
 
       - name: Check with ruff
         run: |
-          ruff check src/ --output-format=github || true
+          ruff check src/ --output-format=github
 
       - name: Check with black
         run: |
-          black --check src/ || true
+          black --check src/

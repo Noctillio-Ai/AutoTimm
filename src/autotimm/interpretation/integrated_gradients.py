@@ -414,12 +414,13 @@ class SmoothGrad:
         accumulated_attr = None
 
         for i in range(self.num_samples):
-            # Add Gaussian noise
+            # Add Gaussian noise. No clamping to [0, 1]: `input_tensor` comes
+            # from BaseInterpreter._preprocess_image, which normalizes with
+            # ImageNet (or backbone-specific) mean/std — values are not bounded
+            # to [0, 1], so clamping there would silently destroy most of the
+            # signal before attribution is computed.
             noise = torch.randn_like(input_tensor) * self.noise_level
             noisy_input = input_tensor + noise
-
-            # Clip to valid range
-            noisy_input = torch.clamp(noisy_input, 0, 1)
 
             # Get attribution from base explainer
             attr = self.base_explainer.explain(noisy_input, target_class, **kwargs)

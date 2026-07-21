@@ -98,13 +98,15 @@ def _build_confusion_data(
             if (precision + recall) > 0
             else 0.0
         )
-        per_class.append({
-            "class_index": c,
-            "label": class_names[c],
-            "precision": round(precision, 4),
-            "recall": round(recall, 4),
-            "f1": round(f1, 4),
-        })
+        per_class.append(
+            {
+                "class_index": c,
+                "label": class_names[c],
+                "precision": round(precision, 4),
+                "recall": round(recall, 4),
+                "f1": round(f1, 4),
+            }
+        )
 
     return {
         "confusion_matrix": {"matrix": cm.tolist(), "labels": class_names},
@@ -175,9 +177,7 @@ class JsonProgressCallback(pl.Callback):
     # Fit lifecycle
     # ------------------------------------------------------------------
 
-    def on_fit_start(
-        self, trainer: pl.Trainer, pl_module: pl.LightningModule
-    ) -> None:
+    def on_fit_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._emit(
             {
                 "event": "training_started",
@@ -187,9 +187,7 @@ class JsonProgressCallback(pl.Callback):
             }
         )
 
-    def on_fit_end(
-        self, trainer: pl.Trainer, pl_module: pl.LightningModule
-    ) -> None:
+    def on_fit_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         metrics = _sanitize_metrics(trainer.callback_metrics)
         self._emit({"event": "training_complete", "final_metrics": metrics})
 
@@ -270,16 +268,10 @@ class JsonProgressCallback(pl.Callback):
     # Test lifecycle
     # ------------------------------------------------------------------
 
-    def on_test_start(
-        self, trainer: pl.Trainer, pl_module: pl.LightningModule
-    ) -> None:
+    def on_test_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._test_preds = []
         self._test_targets = []
-        total_batches = (
-            trainer.num_test_batches[0]
-            if trainer.num_test_batches
-            else 0
-        )
+        total_batches = trainer.num_test_batches[0] if trainer.num_test_batches else 0
         self._emit({"event": "testing_started", "total_batches": total_batches})
 
     def on_test_batch_end(
@@ -299,11 +291,7 @@ class JsonProgressCallback(pl.Callback):
         if (batch_idx + 1) % self.emit_every_n_steps != 0:
             return
 
-        total_batches = (
-            trainer.num_test_batches[0]
-            if trainer.num_test_batches
-            else 0
-        )
+        total_batches = trainer.num_test_batches[0] if trainer.num_test_batches else 0
         self._emit(
             {
                 "event": "test_batch_end",
@@ -334,7 +322,10 @@ class JsonProgressCallback(pl.Callback):
         if dm is not None:
             multi_label = getattr(pl_module, "_multi_label", False)
             threshold = getattr(pl_module, "_threshold", 0.5)
-            for stage, loader_attr in [("train", "train_dataloader"), ("val", "val_dataloader")]:
+            for stage, loader_attr in [
+                ("train", "train_dataloader"),
+                ("val", "val_dataloader"),
+            ]:
                 try:
                     loader_fn = getattr(dm, loader_attr, None)
                     if loader_fn is None:
@@ -343,12 +334,19 @@ class JsonProgressCallback(pl.Callback):
                     if loader is None:
                         continue
                     preds, targets = _evaluate_on_loader(
-                        pl_module, loader, multi_label=multi_label, threshold=threshold,
+                        pl_module,
+                        loader,
+                        multi_label=multi_label,
+                        threshold=threshold,
                     )
                     stage_cm = _build_confusion_data(preds, targets, trainer)
                     if stage_cm:
-                        extra[f"{stage}_confusion_matrix"] = stage_cm["confusion_matrix"]
-                        extra[f"{stage}_per_class_metrics"] = stage_cm["per_class_metrics"]
+                        extra[f"{stage}_confusion_matrix"] = stage_cm[
+                            "confusion_matrix"
+                        ]
+                        extra[f"{stage}_per_class_metrics"] = stage_cm[
+                            "per_class_metrics"
+                        ]
                 except Exception:
                     pass  # Non-critical — don't break test reporting
 
@@ -365,5 +363,9 @@ class JsonProgressCallback(pl.Callback):
         exception: BaseException,
     ) -> None:
         self._emit(
-            {"event": "error", "message": str(exception), "type": type(exception).__name__}
+            {
+                "event": "error",
+                "message": str(exception),
+                "type": type(exception).__name__,
+            }
         )
