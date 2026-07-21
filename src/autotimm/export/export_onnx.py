@@ -12,82 +12,17 @@ Outputs the path to the saved .onnx file on stdout.
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 
 import torch
-import yaml  # PyYAML — bundled with PyTorch Lightning
 
 from autotimm.export._export import export_checkpoint_to_onnx
-
-
-TASK_CLASS_MAP = {
-    "ImageClassifier": "autotimm.tasks.classification.ImageClassifier",
-    "ObjectDetector": "autotimm.tasks.object_detection.ObjectDetector",
-    "SemanticSegmentor": "autotimm.tasks.semantic_segmentation.SemanticSegmentor",
-    "InstanceSegmentor": "autotimm.tasks.instance_segmentation.InstanceSegmentor",
-    "YOLOXDetector": "autotimm.tasks.yolox_detector.YOLOXDetector",
-}
-
-
-def _resolve_task_class(name: str):
-    """Import and return the task class by name."""
-    dotted = TASK_CLASS_MAP.get(name)
-    if dotted is None:
-        raise ValueError(f"Unknown task class: {name}. Valid: {list(TASK_CLASS_MAP)}")
-    module_path, cls_name = dotted.rsplit(".", 1)
-    import importlib
-
-    mod = importlib.import_module(module_path)
-    return getattr(mod, cls_name)
-
-
-def _parse_hparams_yaml(path: str) -> dict:
-    """Read an hparams.yaml file and return the parsed dict."""
-    with open(path) as f:
-        data = yaml.safe_load(f) or {}
-    return data
-
-
-def _build_load_overrides(hp: dict) -> dict:
-    """Build ``load_from_checkpoint`` overrides from an hparams dict."""
-    override: dict = {}
-    backbone = hp.get("backbone") or hp.get("backbone_name")
-    if backbone is not None:
-        override["backbone"] = backbone
-    model_name = hp.get("model_name")
-    if model_name is not None:
-        override["model_name"] = model_name
-    num_classes = hp.get("num_classes")
-    if num_classes is not None:
-        override["num_classes"] = int(num_classes)
-    override["compile_model"] = False
-    return override
-
-
-def _get_hparams(hparams_yaml: str | None, checkpoint_path: str) -> dict:
-    """Load hparams from YAML file, falling back to checkpoint peek."""
-    if hparams_yaml and os.path.isfile(hparams_yaml):
-        return _parse_hparams_yaml(hparams_yaml)
-    # Fallback: peek into checkpoint
-    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    hp = ckpt.get("hyper_parameters", {})
-    if isinstance(hp, dict):
-        return hp.get("init_args", hp)
-    return {}
-
-
-def _resolve_input_size(checkpoint_path: str, task_class, default_size: int,
-                        hparams_yaml: str | None = None) -> int:
-    """Determine image input size from hparams or fall back to *default_size*."""
-    hp = _get_hparams(hparams_yaml, checkpoint_path)
-    overrides = _build_load_overrides(hp)
-    model = task_class.load_from_checkpoint(checkpoint_path, map_location="cpu", **overrides)
-    if hasattr(model, "hparams"):
-        img_size = getattr(model.hparams, "image_size", None)
-        if img_size is not None:
-            return img_size if isinstance(img_size, int) else img_size[0]
-    return default_size
+from autotimm.export._export_cli_common import (
+    get_hparams as _get_hparams,
+    build_load_overrides as _build_load_overrides,
+    resolve_input_size as _resolve_input_size,
+    resolve_task_class as _resolve_task_class,
+)
 
 
 def main():
@@ -131,8 +66,9 @@ def main():
         overrides = _build_load_overrides(hp)
 
         # Determine input size from model hparams if available
-        input_size = _resolve_input_size(args.checkpoint, cls, args.input_size,
-                                         args.hparams_yaml)
+        input_size = _resolve_input_size(
+            args.checkpoint, cls, args.input_size, args.hparams_yaml
+        )
         example_input = torch.randn(1, 3, input_size, input_size)
 
         export_checkpoint_to_onnx(

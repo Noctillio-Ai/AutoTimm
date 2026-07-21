@@ -124,3 +124,14 @@ local_scheme = "no-local-version"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+markers = [
+    "slow: marks tests as slow (e.g. downloads from HF Hub); deselect with '-m \"not slow\"'",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311", "py312", "py313"]

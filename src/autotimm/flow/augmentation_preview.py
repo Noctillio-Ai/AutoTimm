@@ -18,7 +18,9 @@ import json
 import sys
 
 
-def preview(image_path: str, preset: str, image_size: int = 224, count: int = 6) -> list[str]:
+def preview(
+    image_path: str, preset: str, image_size: int = 224, count: int = 6
+) -> list[str]:
     """Apply augmentation transforms and return base64-encoded PNG strings."""
     from PIL import Image as PILImage
 
@@ -30,7 +32,6 @@ def preview(image_path: str, preset: str, image_size: int = 224, count: int = 6)
     for _ in range(count):
         augmented = transform(img)
         if hasattr(augmented, "numpy"):
-            import numpy as np
 
             if augmented.shape[0] == 3:
                 arr = (

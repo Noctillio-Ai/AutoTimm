@@ -223,24 +223,30 @@ class BaseInterpreter(ABC):
                 img_size = input_size[-1]
                 resize_size = int(img_size / crop_pct)
 
-                transform = T.Compose([
-                    T.Resize(resize_size, interpolation=T.InterpolationMode.BICUBIC),
-                    T.CenterCrop(img_size),
-                    T.ToTensor(),
-                    T.Normalize(mean=mean, std=std),
-                ])
+                transform = T.Compose(
+                    [
+                        T.Resize(
+                            resize_size, interpolation=T.InterpolationMode.BICUBIC
+                        ),
+                        T.CenterCrop(img_size),
+                        T.ToTensor(),
+                        T.Normalize(mean=mean, std=std),
+                    ]
+                )
                 tensor = transform(image).unsqueeze(0)
                 return tensor.to(self.device)
         except Exception:
             pass
 
         # 3. Fallback: ImageNet defaults
-        transform = T.Compose([
-            T.Resize(256, interpolation=T.InterpolationMode.BICUBIC),
-            T.CenterCrop(224),
-            T.ToTensor(),
-            T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-        ])
+        transform = T.Compose(
+            [
+                T.Resize(256, interpolation=T.InterpolationMode.BICUBIC),
+                T.CenterCrop(224),
+                T.ToTensor(),
+                T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+            ]
+        )
         tensor = transform(image).unsqueeze(0)
         return tensor.to(self.device)
 

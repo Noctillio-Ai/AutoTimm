@@ -129,10 +129,12 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
         self.save_hyperparameters(
             ignore=["metrics", "logging_config", "transform_config"]
         )
-        self.hparams.update({
-            "username": getpass.getuser(),
-            "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
-        })
+        self.hparams.update(
+            {
+                "username": getpass.getuser(),
+                "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
+            }
+        )
 
         self.model_name = model_name
         self.num_classes = num_classes
@@ -204,7 +206,10 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
         # is typically unavailable; compilation is deferred so the try/except
         # at init time cannot catch the error.
         import sys as _sys
-        _mps_available = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+
+        _mps_available = (
+            hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+        )
         _skip_compile = _mps_available or _sys.platform == "win32"
         if compile_model and not _skip_compile:
             try:
@@ -264,7 +269,7 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
 
     def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
         """Training step - compute loss."""
-        images = batch["images"]
+        images = batch["image"]
         target_boxes = batch["boxes"]
         target_labels = batch["labels"]
 
@@ -540,7 +545,7 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
 
     def validation_step(self, batch: dict[str, Any], batch_idx: int) -> None:
         """Validation step."""
-        images = batch["images"]
+        images = batch["image"]
         predictions = self.predict(images)
         targets = [
             {"boxes": boxes, "labels": labels}
@@ -570,7 +575,7 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
 
     def test_step(self, batch: dict[str, Any], batch_idx: int) -> None:
         """Test step."""
-        images = batch["images"]
+        images = batch["image"]
         predictions = self.predict(images)
         targets = [
             {"boxes": boxes, "labels": labels}
@@ -596,7 +601,7 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
 
     def predict_step(self, batch: Any, batch_idx: int) -> list[dict[str, torch.Tensor]]:
         """Prediction step."""
-        images = batch["images"] if isinstance(batch, dict) else batch
+        images = batch["image"] if isinstance(batch, dict) else batch
         return self.predict(images)
 
     def to_onnx(

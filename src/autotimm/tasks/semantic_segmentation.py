@@ -125,17 +125,27 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
 
         # Normalize backbone to a plain string so it survives checkpoint
         # round-trip (FeatureBackboneConfig is not serialised by save_hyperparameters).
-        backbone = backbone.model_name if hasattr(backbone, "model_name") else str(backbone)
+        backbone = (
+            backbone.model_name if hasattr(backbone, "model_name") else str(backbone)
+        )
 
         super().__init__()
         self.save_hyperparameters(
-            ignore=["metrics", "logging_config", "transform_config", "class_weights", "loss_fn"]
+            ignore=[
+                "metrics",
+                "logging_config",
+                "transform_config",
+                "class_weights",
+                "loss_fn",
+            ]
         )
-        self.hparams.update({
-            "backbone_name": backbone,
-            "username": getpass.getuser(),
-            "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
-        })
+        self.hparams.update(
+            {
+                "backbone_name": backbone,
+                "username": getpass.getuser(),
+                "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
+            }
+        )
 
         # Create feature backbone
         self.backbone = create_feature_backbone(backbone)
@@ -268,7 +278,10 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         # is typically unavailable; compilation is deferred so the try/except
         # at init time cannot catch the error.
         import sys as _sys
-        _mps_available = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+
+        _mps_available = (
+            hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+        )
         _skip_compile = _mps_available or _sys.platform == "win32"
         if compile_model and not _skip_compile:
             try:

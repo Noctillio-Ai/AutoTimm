@@ -9,8 +9,6 @@ from typing import Any
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torchvision.ops as ops
 
 from autotimm.core.backbone import (
     FeatureBackboneConfig,
@@ -23,6 +21,10 @@ from autotimm.losses import FocalLoss, GIoULoss, get_loss_registry
 from autotimm.core.metrics import LoggingConfig, MetricConfig, MetricManager
 from autotimm.tasks.preprocessing_mixin import PreprocessingMixin
 from autotimm.core.utils import seed_everything
+from autotimm.tasks._fcos_targets import (
+    compute_fcos_detection_loss,
+    decode_fcos_detections,
+)
 
 
 class ObjectDetector(PreprocessingMixin, pl.LightningModule):
@@ -145,17 +147,27 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
 
         # Normalize backbone to a plain string so it survives checkpoint
         # round-trip (FeatureBackboneConfig is not serialised by save_hyperparameters).
-        backbone = backbone.model_name if hasattr(backbone, "model_name") else str(backbone)
+        backbone = (
+            backbone.model_name if hasattr(backbone, "model_name") else str(backbone)
+        )
 
         super().__init__()
         self.save_hyperparameters(
-            ignore=["metrics", "logging_config", "transform_config", "cls_loss_fn", "reg_loss_fn"]
+            ignore=[
+                "metrics",
+                "logging_config",
+                "transform_config",
+                "cls_loss_fn",
+                "reg_loss_fn",
+            ]
         )
-        self.hparams.update({
-            "backbone_name": backbone,
-            "username": getpass.getuser(),
-            "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
-        })
+        self.hparams.update(
+            {
+                "backbone_name": backbone,
+                "username": getpass.getuser(),
+                "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
+            }
+        )
 
         # Validate detection architecture
         if detection_arch not in ["fcos", "yolox"]:
@@ -322,7 +334,10 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
         # is typically unavailable; compilation is deferred so the try/except
         # at init time cannot catch the error.
         import sys as _sys
-        _mps_available = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+
+        _mps_available = (
+            hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+        )
         _skip_compile = _mps_available or _sys.platform == "win32"
         if compile_model and not _skip_compile:
             try:
@@ -413,137 +428,34 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
         return cls_outputs, reg_outputs, centerness_outputs
 
     def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
-        images = batch["images"]
+        images = batch["image"]
         target_boxes = batch["boxes"]  # List of [N_i, 4] tensors
         target_labels = batch["labels"]  # List of [N_i] tensors
 
         # Forward
         cls_outputs, reg_outputs, centerness_outputs = self(images)
 
-        # Compute targets for each FPN level
-        device = images.device
-        batch_size = images.shape[0]
-        img_h, img_w = images.shape[-2:]
+        losses = compute_fcos_detection_loss(
+            cls_outputs,
+            reg_outputs,
+            centerness_outputs,
+            target_boxes,
+            target_labels,
+            self.strides,
+            self.regress_ranges,
+            self.focal_loss,
+            self.num_classes,
+        )
 
-        # Compute loss
-        total_cls_loss = torch.tensor(0.0, device=device)
-        total_reg_loss = torch.tensor(0.0, device=device)
-        total_centerness_loss = torch.tensor(0.0, device=device)
-        num_pos = 0
-
-        # Prepare centerness outputs for iteration
-        if centerness_outputs is None:
-            # YOLOX doesn't use centerness
-            centerness_iter = [None] * len(cls_outputs)
-        else:
-            centerness_iter = centerness_outputs
-
-        for level_idx, (cls_out, reg_out, cent_out) in enumerate(
-            zip(cls_outputs, reg_outputs, centerness_iter)
-        ):
-            stride = self.strides[level_idx]
-            feat_h, feat_w = cls_out.shape[-2:]
-
-            # Generate grid points for this level
-            grid_y, grid_x = torch.meshgrid(
-                torch.arange(feat_h, device=device, dtype=torch.float32),
-                torch.arange(feat_w, device=device, dtype=torch.float32),
-                indexing="ij",
-            )
-            # Points are at the center of each cell
-            points_x = (grid_x + 0.5) * stride
-            points_y = (grid_y + 0.5) * stride
-            points = torch.stack([points_x, points_y], dim=-1)  # [H, W, 2]
-
-            # Compute targets for this level
-            level_cls_targets = []
-            level_reg_targets = []
-            level_centerness_targets = [] if self.detection_arch == "fcos" else None
-
-            for b in range(batch_size):
-                boxes = target_boxes[b]  # [N, 4] in xyxy format
-                labels = target_labels[b]  # [N]
-
-                if len(boxes) == 0:
-                    # No objects - all background
-                    cls_target = torch.full(
-                        (feat_h, feat_w), -1, dtype=torch.long, device=device
-                    )
-                    reg_target = torch.zeros(feat_h, feat_w, 4, device=device)
-                    cent_target = (
-                        torch.zeros(feat_h, feat_w, device=device)
-                        if self.detection_arch == "fcos"
-                        else None
-                    )
-                else:
-                    cls_target, reg_target, cent_target = (
-                        self._compute_targets_per_level(
-                            points, boxes, labels, stride, level_idx, (img_h, img_w)
-                        )
-                    )
-
-                level_cls_targets.append(cls_target)
-                level_reg_targets.append(reg_target)
-                if self.detection_arch == "fcos":
-                    level_centerness_targets.append(cent_target)
-
-            # Stack batch
-            cls_targets = torch.stack(level_cls_targets)  # [B, H, W]
-            reg_targets = torch.stack(level_reg_targets)  # [B, H, W, 4]
-            cent_targets = (
-                torch.stack(level_centerness_targets)
-                if self.detection_arch == "fcos"
-                else None
-            )  # [B, H, W]
-
-            # Compute classification loss (all locations except ignored=-1)
-            cls_out_flat = cls_out.permute(0, 2, 3, 1).reshape(-1, self.num_classes)
-            cls_targets_flat = cls_targets.reshape(-1)
-            valid_mask = cls_targets_flat >= 0
-
-            if valid_mask.any():
-                # For focal loss, background class is handled implicitly
-                # Positive samples have class labels, negatives have -1 (ignored in loss)
-                total_cls_loss = total_cls_loss + self.focal_loss(
-                    cls_out_flat, cls_targets_flat
-                )
-
-            # Compute regression and centerness loss (positive samples only)
-            pos_mask = cls_targets >= 0  # [B, H, W]
-
-            if pos_mask.any():
-                pos_reg_pred = reg_out.permute(0, 2, 3, 1)[pos_mask]  # [N_pos, 4]
-                pos_reg_target = reg_targets[pos_mask]  # [N_pos, 4]
-
-                # IoU-based regression loss
-                reg_loss = self._compute_iou_loss(pos_reg_pred, pos_reg_target)
-                total_reg_loss = total_reg_loss + reg_loss
-
-                # Centerness BCE loss (FCOS only)
-                if self.detection_arch == "fcos" and cent_out is not None:
-                    pos_cent_pred = cent_out.squeeze(1)[pos_mask]  # [N_pos]
-                    pos_cent_target = cent_targets[pos_mask]  # [N_pos]
-                    cent_loss = F.binary_cross_entropy_with_logits(
-                        pos_cent_pred, pos_cent_target, reduction="sum"
-                    )
-                    total_centerness_loss = total_centerness_loss + cent_loss
-
-                num_pos += pos_mask.sum().item()
-
-        # Normalize by number of positive samples
-        num_pos = max(num_pos, 1)
-
-        cls_loss = self.cls_loss_weight * total_cls_loss / num_pos
-        reg_loss = self.reg_loss_weight * total_reg_loss / num_pos
+        cls_loss = self.cls_loss_weight * losses["cls_loss"]
+        reg_loss = self.reg_loss_weight * losses["reg_loss"]
 
         # Centerness loss only for FCOS
         if self.detection_arch == "fcos":
-            centerness_loss = (
-                self.centerness_loss_weight * total_centerness_loss / num_pos
-            )
+            centerness_loss = self.centerness_loss_weight * losses["centerness_loss"]
             total_loss = cls_loss + reg_loss + centerness_loss
         else:
-            centerness_loss = torch.tensor(0.0, device=device)
+            centerness_loss = torch.tensor(0.0, device=images.device)
             total_loss = cls_loss + reg_loss
 
         # Log losses
@@ -552,7 +464,7 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
         self.log("train/reg_loss", reg_loss)
         if self.detection_arch == "fcos":
             self.log("train/centerness_loss", centerness_loss)
-        self.log("train/num_pos", float(num_pos))
+        self.log("train/num_pos", float(losses["num_pos"]))
 
         # Enhanced logging
         if self._logging_config.log_learning_rate:
@@ -563,139 +475,8 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
 
         return total_loss
 
-    def _compute_targets_per_level(
-        self,
-        points: torch.Tensor,
-        boxes: torch.Tensor,
-        labels: torch.Tensor,
-        stride: int,
-        level_idx: int,
-        img_size: tuple[int, int],
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Compute FCOS targets for a single image at one FPN level.
-
-        Args:
-            points: Grid points [H, W, 2].
-            boxes: Target boxes [N, 4] in xyxy format.
-            labels: Target labels [N].
-            stride: Stride for this FPN level.
-            level_idx: Index of FPN level.
-            img_size: (H, W) of input image.
-
-        Returns:
-            cls_target: [H, W] with class labels or -1 for ignore.
-            reg_target: [H, W, 4] with (l, t, r, b) distances.
-            centerness_target: [H, W] with centerness values.
-        """
-        device = points.device
-        feat_h, feat_w = points.shape[:2]
-
-        # Expand points and boxes for broadcasting
-        points_flat = points.reshape(-1, 2)  # [H*W, 2]
-        num_points = points_flat.shape[0]
-
-        # Compute distances from each point to each box
-        # boxes: [N, 4] -> [1, N, 4] for broadcasting
-        boxes_exp = boxes.unsqueeze(0)  # [1, N, 4]
-        points_exp = points_flat.unsqueeze(1)  # [H*W, 1, 2]
-
-        # Left, top, right, bottom distances
-        left = points_exp[..., 0] - boxes_exp[..., 0]  # [H*W, N]
-        top = points_exp[..., 1] - boxes_exp[..., 1]
-        right = boxes_exp[..., 2] - points_exp[..., 0]
-        bottom = boxes_exp[..., 3] - points_exp[..., 1]
-
-        reg_targets_per_box = torch.stack(
-            [left, top, right, bottom], dim=-1
-        )  # [H*W, N, 4]
-
-        # Check if point is inside box
-        inside_box = (left > 0) & (top > 0) & (right > 0) & (bottom > 0)  # [H*W, N]
-
-        # Check regression range constraint
-        max_reg = reg_targets_per_box.max(dim=-1)[0]  # [H*W, N]
-        min_range, max_range = self.regress_ranges[level_idx]
-        in_range = (max_reg >= min_range) & (max_reg < max_range)
-
-        # Valid assignments: inside box AND in regression range
-        valid = inside_box & in_range  # [H*W, N]
-
-        # For each point, find the box with minimum area (most specific)
-        box_areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])  # [N]
-        box_areas_exp = box_areas.unsqueeze(0).expand(num_points, -1)  # [H*W, N]
-
-        # Set invalid assignments to inf area
-        box_areas_masked = torch.where(
-            valid, box_areas_exp, torch.tensor(float("inf"), device=device)
-        )
-
-        # Find best box for each point
-        min_areas, best_box_idx = box_areas_masked.min(dim=1)  # [H*W]
-        has_assignment = min_areas < float("inf")
-
-        # Create targets
-        cls_target = torch.full((num_points,), -1, dtype=torch.long, device=device)
-        reg_target = torch.zeros(num_points, 4, device=device)
-        centerness_target = torch.zeros(num_points, device=device)
-
-        if has_assignment.any():
-            assigned_idx = best_box_idx[has_assignment]
-            cls_target[has_assignment] = labels[assigned_idx]
-
-            # Get regression targets for assigned points
-            point_indices = torch.arange(num_points, device=device)[has_assignment]
-            reg_target[has_assignment] = reg_targets_per_box[
-                point_indices, assigned_idx
-            ]
-
-            # Compute centerness
-            lr = reg_target[has_assignment]
-            left_right_min = torch.min(lr[:, 0], lr[:, 2])
-            left_right_max = torch.max(lr[:, 0], lr[:, 2])
-            top_bottom_min = torch.min(lr[:, 1], lr[:, 3])
-            top_bottom_max = torch.max(lr[:, 1], lr[:, 3])
-
-            centerness = torch.sqrt(
-                (left_right_min / left_right_max.clamp(min=1e-7))
-                * (top_bottom_min / top_bottom_max.clamp(min=1e-7))
-            )
-            centerness_target[has_assignment] = centerness
-
-        # Reshape to spatial dimensions
-        cls_target = cls_target.reshape(feat_h, feat_w)
-        reg_target = reg_target.reshape(feat_h, feat_w, 4)
-        centerness_target = centerness_target.reshape(feat_h, feat_w)
-
-        return cls_target, reg_target, centerness_target
-
-    def _compute_iou_loss(
-        self, pred: torch.Tensor, target: torch.Tensor
-    ) -> torch.Tensor:
-        """Compute IoU-based regression loss for LTRB predictions."""
-        # Compute areas from LTRB distances
-        pred_area = (pred[:, 0] + pred[:, 2]) * (pred[:, 1] + pred[:, 3])
-        target_area = (target[:, 0] + target[:, 2]) * (target[:, 1] + target[:, 3])
-
-        # Intersection
-        inter_w = torch.min(pred[:, 0], target[:, 0]) + torch.min(
-            pred[:, 2], target[:, 2]
-        )
-        inter_h = torch.min(pred[:, 1], target[:, 1]) + torch.min(
-            pred[:, 3], target[:, 3]
-        )
-        inter_area = inter_w * inter_h
-
-        # Union
-        union_area = pred_area + target_area - inter_area
-
-        # IoU loss (negative log)
-        iou = inter_area / union_area.clamp(min=1e-7)
-        loss = -torch.log(iou.clamp(min=1e-7))
-
-        return loss.sum()
-
     def validation_step(self, batch: dict[str, Any], batch_idx: int) -> None:
-        images = batch["images"]
+        images = batch["image"]
         target_boxes = batch["boxes"]
         target_labels = batch["labels"]
 
@@ -741,7 +522,7 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
             metric.reset()
 
     def test_step(self, batch: dict[str, Any], batch_idx: int) -> None:
-        images = batch["images"]
+        images = batch["image"]
         target_boxes = batch["boxes"]
         target_labels = batch["labels"]
 
@@ -789,132 +570,22 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
             List of dicts per image with 'boxes', 'scores', 'labels'.
         """
         cls_outputs, reg_outputs, centerness_outputs = self(images)
-
-        batch_size = images.shape[0]
         img_h, img_w = images.shape[-2:]
-        device = images.device
 
-        all_detections = []
-
-        # Prepare centerness outputs for iteration
-        if centerness_outputs is None:
-            centerness_iter = [None] * len(cls_outputs)
-        else:
-            centerness_iter = centerness_outputs
-
-        for b in range(batch_size):
-            all_boxes = []
-            all_scores = []
-            all_labels = []
-
-            for level_idx, (cls_out, reg_out, cent_out) in enumerate(
-                zip(cls_outputs, reg_outputs, centerness_iter)
-            ):
-                stride = self.strides[level_idx]
-                feat_h, feat_w = cls_out.shape[-2:]
-
-                # Get predictions for this image
-                cls_logits = cls_out[b]  # [C, H, W]
-                reg_pred = reg_out[b]  # [4, H, W]
-
-                # Generate grid points
-                grid_y, grid_x = torch.meshgrid(
-                    torch.arange(feat_h, device=device, dtype=torch.float32),
-                    torch.arange(feat_w, device=device, dtype=torch.float32),
-                    indexing="ij",
-                )
-                points_x = (grid_x + 0.5) * stride
-                points_y = (grid_y + 0.5) * stride
-
-                # Flatten spatial dimensions
-                cls_logits = cls_logits.permute(1, 2, 0).reshape(
-                    -1, self.num_classes
-                )  # [H*W, C]
-                reg_pred = reg_pred.permute(1, 2, 0).reshape(-1, 4)  # [H*W, 4]
-                points_x = points_x.reshape(-1)
-                points_y = points_y.reshape(-1)
-
-                # Compute scores
-                cls_scores = cls_logits.sigmoid()
-                if cent_out is not None:
-                    # FCOS: classification * centerness
-                    cent_pred = cent_out[b, 0]  # [H, W]
-                    cent_pred = cent_pred.reshape(-1)  # [H*W]
-                    centerness = cent_pred.sigmoid()
-                    scores = cls_scores * centerness.unsqueeze(-1)  # [H*W, C]
-                else:
-                    # YOLOX: just use classification scores
-                    scores = cls_scores  # [H*W, C]
-
-                # Get max score per location
-                max_scores, class_ids = scores.max(dim=-1)  # [H*W]
-
-                # Filter by score threshold
-                keep = max_scores > self.score_thresh
-                if not keep.any():
-                    continue
-
-                max_scores = max_scores[keep]
-                class_ids = class_ids[keep]
-                reg_pred = reg_pred[keep]
-                points_x = points_x[keep]
-                points_y = points_y[keep]
-
-                # Convert LTRB to xyxy boxes
-                left = reg_pred[:, 0]
-                top = reg_pred[:, 1]
-                right = reg_pred[:, 2]
-                bottom = reg_pred[:, 3]
-
-                x1 = points_x - left
-                y1 = points_y - top
-                x2 = points_x + right
-                y2 = points_y + bottom
-
-                # Clamp to image bounds
-                x1 = x1.clamp(min=0, max=img_w)
-                y1 = y1.clamp(min=0, max=img_h)
-                x2 = x2.clamp(min=0, max=img_w)
-                y2 = y2.clamp(min=0, max=img_h)
-
-                boxes = torch.stack([x1, y1, x2, y2], dim=-1)
-
-                all_boxes.append(boxes)
-                all_scores.append(max_scores)
-                all_labels.append(class_ids)
-
-            # Concatenate all levels
-            if len(all_boxes) > 0:
-                boxes = torch.cat(all_boxes, dim=0)
-                scores = torch.cat(all_scores, dim=0)
-                labels = torch.cat(all_labels, dim=0)
-
-                # Apply NMS per class
-                keep_indices = ops.batched_nms(boxes, scores, labels, self.nms_thresh)
-
-                # Limit number of detections
-                keep_indices = keep_indices[: self.max_detections_per_image]
-
-                boxes = boxes[keep_indices]
-                scores = scores[keep_indices]
-                labels = labels[keep_indices]
-            else:
-                boxes = torch.zeros((0, 4), device=device)
-                scores = torch.zeros((0,), device=device)
-                labels = torch.zeros((0,), dtype=torch.long, device=device)
-
-            all_detections.append(
-                {
-                    "boxes": boxes,
-                    "scores": scores,
-                    "labels": labels,
-                }
-            )
-
-        return all_detections
+        return decode_fcos_detections(
+            cls_outputs,
+            reg_outputs,
+            centerness_outputs,
+            self.strides,
+            self.num_classes,
+            (img_h, img_w),
+            self.score_thresh,
+            self.nms_thresh,
+            self.max_detections_per_image,
+        )
 
     def predict_step(self, batch: Any, batch_idx: int) -> list[dict[str, torch.Tensor]]:
-        images = batch["images"] if isinstance(batch, dict) else batch
+        images = batch["image"] if isinstance(batch, dict) else batch
         return self.predict(images)
 
     def to_onnx(

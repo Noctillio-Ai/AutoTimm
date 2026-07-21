@@ -236,4 +236,3 @@ class MultiLabelImageDataModule(pl.LightningDataModule):
             shuffle=False,
             **self._loader_kwargs(),
         )
-

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import random
+from typing import Any
 
 import numpy as np
 import torch
@@ -66,6 +67,40 @@ def seed_everything(seed: int = 42, deterministic: bool = False) -> int:
         torch.backends.cudnn.deterministic = False
 
     return seed
+
+
+def safe_torch_load(checkpoint_path: str, map_location: Any = "cpu") -> dict:
+    """Load a checkpoint, preferring PyTorch's restricted unpickler.
+
+    Tries ``torch.load(..., weights_only=True)`` first, which refuses to
+    unpickle anything beyond tensors and a safe list of primitives. Lightning
+    checkpoints can contain extra pickled objects (e.g. in ``loops``) that
+    this restricted mode rejects, so this falls back to
+    ``weights_only=False`` only when the safe load fails — and logs a
+    warning when it does, since that path can execute arbitrary code
+    embedded in the checkpoint file.
+
+    Parameters:
+        checkpoint_path: Path to the ``.ckpt``/``.pt`` file.
+        map_location: Passed through to ``torch.load``.
+
+    Returns:
+        The deserialized checkpoint dictionary.
+    """
+    try:
+        return torch.load(checkpoint_path, map_location=map_location, weights_only=True)
+    except Exception:
+        from loguru import logger
+
+        logger.warning(
+            f"Loading '{checkpoint_path}' with weights_only=False because the "
+            "restricted (safe) unpickler rejected it. Only do this for "
+            "checkpoints you trust — this path can execute arbitrary code "
+            "embedded in the file."
+        )
+        return torch.load(
+            checkpoint_path, map_location=map_location, weights_only=False
+        )
 
 
 def count_parameters(model: nn.Module, trainable_only: bool = True) -> int:

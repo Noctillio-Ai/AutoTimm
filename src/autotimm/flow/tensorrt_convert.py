@@ -28,7 +28,7 @@ def convert(onnx_path: str, engine_path: str, workspace_gb: int = 1) -> str:
         errors = []
         for i in range(parser.num_errors):
             errors.append(str(parser.get_error(i)))
-        raise RuntimeError(f"ONNX parsing failed:\n" + "\n".join(errors))
+        raise RuntimeError("ONNX parsing failed:\n" + "\n".join(errors))
 
     config = builder.create_builder_config()
     config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, workspace_gb << 30)

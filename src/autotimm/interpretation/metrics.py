@@ -15,6 +15,11 @@ from PIL import Image
 
 from autotimm.core.logging import logger
 
+# Guards against division by a near-zero prediction score (e.g. the target
+# class starts at ~0 confidence), which would otherwise blow up AUC/rise
+# values to inf without any indication something degenerate happened.
+_EPS = 1e-8
+
 
 class ExplanationMetrics:
     """
@@ -115,9 +120,9 @@ class ExplanationMetrics:
             rows = pixels_to_delete // heatmap.shape[1]
             cols = pixels_to_delete % heatmap.shape[1]
 
-            # Replace with baseline
-            for r, c in zip(rows, cols):
-                modified[:, :, r, c] = baseline_tensor[:, :, r, c]
+            # Replace with baseline (vectorized — avoids a Python-level loop
+            # over up to H*W pixels per step)
+            modified[:, :, rows, cols] = baseline_tensor[:, :, rows, cols]
 
             # Get new prediction
             with torch.no_grad():
@@ -132,12 +137,13 @@ class ExplanationMetrics:
             scores.append(score)
 
         # Compute metrics
+        safe_original_score = max(original_score, _EPS)
         try:
-            auc = np.trapezoid(scores, dx=1.0 / steps) / original_score
+            auc = np.trapezoid(scores, dx=1.0 / steps) / safe_original_score
         except AttributeError:
             # Fallback for older numpy versions
-            auc = np.trapz(scores, dx=1.0 / steps) / original_score
-        final_drop = (original_score - scores[-1]) / original_score
+            auc = np.trapz(scores, dx=1.0 / steps) / safe_original_score
+        final_drop = (original_score - scores[-1]) / safe_original_score
 
         return {
             "auc": auc,
@@ -219,9 +225,9 @@ class ExplanationMetrics:
             rows = pixels_to_insert // heatmap.shape[1]
             cols = pixels_to_insert % heatmap.shape[1]
 
-            # Replace with original pixels
-            for r, c in zip(rows, cols):
-                modified[:, :, r, c] = input_tensor[:, :, r, c]
+            # Replace with original pixels (vectorized — avoids a Python-level
+            # loop over up to H*W pixels per step)
+            modified[:, :, rows, cols] = input_tensor[:, :, rows, cols]
 
             # Get new prediction
             with torch.no_grad():
@@ -236,11 +242,12 @@ class ExplanationMetrics:
             scores.append(score)
 
         # Compute metrics
+        safe_original_score = max(original_score, _EPS)
         try:
-            auc = np.trapezoid(scores, dx=1.0 / steps) / original_score
+            auc = np.trapezoid(scores, dx=1.0 / steps) / safe_original_score
         except AttributeError:
             # Fallback for older numpy versions
-            auc = np.trapz(scores, dx=1.0 / steps) / original_score
+            auc = np.trapz(scores, dx=1.0 / steps) / safe_original_score
 
         # Compute final rise - handle edge case where baseline >= original
         denominator = original_score - baseline_score
@@ -294,13 +301,21 @@ class ExplanationMetrics:
         # Get original explanation
         original_heatmap = self.explainer.explain(image, target_class=target_class)
 
+        # Use the explainer's own preprocessing (which may apply model-specific
+        # normalization) so noisy samples live in the same domain as the tensor
+        # `explainer.explain()` used to produce `original_heatmap` above. Using
+        # this class's own `_preprocess_image` (plain [0, 1] ToTensor) here would
+        # feed the explainer an incorrectly-scaled tensor, since a raw tensor is
+        # passed through by BaseInterpreter._preprocess_image without renormalizing.
+        explainer_input = self.explainer._preprocess_image(image)
+
         # Generate noisy versions
         changes = []
         for _ in range(n_samples):
-            # Add noise
-            noise = torch.randn_like(input_tensor) * noise_level
-            noisy_input = input_tensor + noise
-            noisy_input = torch.clamp(noisy_input, 0, 1)
+            # Add noise. No clamping: `explainer_input` may be ImageNet-normalized
+            # (roughly in [-2, 2.6]), so clamping to [0, 1] would destroy signal.
+            noise = torch.randn_like(explainer_input) * noise_level
+            noisy_input = explainer_input + noise
 
             # Get explanation for noisy input
             noisy_heatmap = self.explainer.explain(
@@ -363,13 +378,17 @@ class ExplanationMetrics:
                 if param.requires_grad:
                     param.data = torch.randn_like(param.data)
 
-        # Get explanation with randomized model
-        randomized_heatmap = self.explainer.explain(image, target_class=target_class)
-
-        # Restore original parameters
-        with torch.no_grad():
-            for name, param in self.model.named_parameters():
-                param.data = original_state[name].data
+        try:
+            # Get explanation with randomized model
+            randomized_heatmap = self.explainer.explain(
+                image, target_class=target_class
+            )
+        finally:
+            # Always restore original parameters, even if explain() raises —
+            # otherwise the model is left permanently corrupted.
+            with torch.no_grad():
+                for name, param in self.model.named_parameters():
+                    param.data = original_state[name].data
 
         # Compute correlation
         correlation = np.corrcoef(

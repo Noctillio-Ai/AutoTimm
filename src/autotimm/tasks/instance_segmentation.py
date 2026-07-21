@@ -24,6 +24,10 @@ from autotimm.losses.segmentation import MaskLoss
 from autotimm.core.metrics import LoggingConfig, MetricConfig, MetricManager
 from autotimm.tasks.preprocessing_mixin import PreprocessingMixin
 from autotimm.core.utils import seed_everything
+from autotimm.tasks._fcos_targets import (
+    compute_fcos_detection_loss,
+    decode_fcos_detections,
+)
 
 
 class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
@@ -75,6 +79,9 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
         freeze_backbone: If True, backbone parameters are frozen.
         roi_pool_size: Size of ROI pooling output (default: 14).
         mask_threshold: Threshold for binarizing predicted masks (default: 0.5).
+        strides: FPN output strides. Default (8, 16, 32, 64, 128) for P3-P7.
+        regress_ranges: FCOS regression ranges for each FPN level. Defaults to
+            the standard FCOS P3-P7 ranges when ``None``.
         compile_model: If ``True`` (default), apply ``torch.compile()`` to the backbone, FPN, and heads
             for faster inference and training. Requires PyTorch 2.0+.
         compile_kwargs: Optional dict of kwargs to pass to ``torch.compile()``.
@@ -134,6 +141,8 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
         freeze_backbone: bool = False,
         roi_pool_size: int = 14,
         mask_threshold: float = 0.5,
+        strides: tuple[int, ...] = (8, 16, 32, 64, 128),
+        regress_ranges: tuple[tuple[int, int], ...] | None = None,
         compile_model: bool = True,
         compile_kwargs: dict[str, Any] | None = None,
         seed: int | None = None,
@@ -153,17 +162,28 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
 
         # Normalize backbone to a plain string so it survives checkpoint
         # round-trip (FeatureBackboneConfig is not serialised by save_hyperparameters).
-        backbone = backbone.model_name if hasattr(backbone, "model_name") else str(backbone)
+        backbone = (
+            backbone.model_name if hasattr(backbone, "model_name") else str(backbone)
+        )
 
         super().__init__()
         self.save_hyperparameters(
-            ignore=["metrics", "logging_config", "transform_config", "cls_loss_fn", "reg_loss_fn", "mask_loss_fn"]
+            ignore=[
+                "metrics",
+                "logging_config",
+                "transform_config",
+                "cls_loss_fn",
+                "reg_loss_fn",
+                "mask_loss_fn",
+            ]
         )
-        self.hparams.update({
-            "backbone_name": backbone,
-            "username": getpass.getuser(),
-            "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
-        })
+        self.hparams.update(
+            {
+                "backbone_name": backbone,
+                "username": getpass.getuser(),
+                "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
+            }
+        )
 
         self.num_classes = num_classes
         self._lr = lr
@@ -179,9 +199,27 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
         self.mask_size = mask_size
         self.mask_threshold = mask_threshold
         self.roi_pool_size = roi_pool_size
+        self.strides = strides
 
-        # Build model
-        self.backbone = create_feature_backbone(backbone)
+        # Default regression ranges for FCOS (P3-P7)
+        if regress_ranges is None:
+            self.regress_ranges = (
+                (-1, 64),
+                (64, 128),
+                (128, 256),
+                (256, 512),
+                (512, float("inf")),
+            )
+        else:
+            self.regress_ranges = regress_ranges
+
+        # Build model. Use 3 backbone feature levels (C3, C4, C5) which,
+        # combined with 2 extra FPN levels, gives P3-P7 (5 levels total) —
+        # matching `strides`/`regress_ranges` above and ObjectDetector's FCOS
+        # convention. `backbone` here is always a plain model-name string (see
+        # the normalization at the top of __init__), so this always applies.
+        backbone_cfg = FeatureBackboneConfig(model_name=backbone, out_indices=(2, 3, 4))
+        self.backbone = create_feature_backbone(backbone_cfg)
         in_channels = get_feature_channels(self.backbone)
 
         self.fpn = FPN(
@@ -300,7 +338,10 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
         # is typically unavailable; compilation is deferred so the try/except
         # at init time cannot catch the error.
         import sys as _sys
-        _mps_available = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+
+        _mps_available = (
+            hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+        )
         _skip_compile = _mps_available or _sys.platform == "win32"
         if compile_model and not _skip_compile:
             try:
@@ -389,33 +430,24 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
         target_boxes: list[torch.Tensor],
         target_labels: list[torch.Tensor],
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Compute detection losses (simplified version).
+        """Compute FCOS detection losses via per-level target assignment.
 
         Returns:
-            Tuple of (cls_loss, reg_loss, centerness_loss)
+            Tuple of (cls_loss, reg_loss, centerness_loss), each already
+            normalized by the number of positive samples.
         """
-        # For simplicity, compute a basic loss
-        # In production, this would use FCOS target assignment
-        device = cls_outputs[0].device
-
-        # Placeholder: count valid targets
-        total_targets = sum(len(t) for t in target_labels)
-
-        if total_targets == 0:
-            # No targets, return zero losses
-            return (
-                torch.tensor(0.0, device=device),
-                torch.tensor(0.0, device=device),
-                torch.tensor(0.0, device=device),
-            )
-
-        # Simplified loss computation
-        # In practice, you would implement proper FCOS loss with target assignment
-        cls_loss = sum(o.sum() for o in cls_outputs) * 0.0  # Placeholder
-        reg_loss = sum(o.sum() for o in reg_outputs) * 0.0  # Placeholder
-        centerness_loss = sum(o.sum() for o in centerness_outputs) * 0.0  # Placeholder
-
-        return cls_loss, reg_loss, centerness_loss
+        losses = compute_fcos_detection_loss(
+            cls_outputs,
+            reg_outputs,
+            centerness_outputs,
+            target_boxes,
+            target_labels,
+            self.strides,
+            self.regress_ranges,
+            self.focal_loss,
+            self.num_classes,
+        )
+        return losses["cls_loss"], losses["reg_loss"], losses["centerness_loss"]
 
     def _compute_mask_loss(
         self,
@@ -581,13 +613,15 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
         # Get predictions
         predictions = self.predict(images)
 
-        # Prepare targets for metrics
+        # Prepare targets for metrics. torchmetrics' MeanAveragePrecision
+        # (iou_type="segm") requires boolean masks; the dataset stores masks
+        # as float.
         targets = []
         for i in range(len(batch["boxes"])):
             target = {
                 "boxes": batch["boxes"][i],
                 "labels": batch["labels"][i],
-                "masks": batch["masks"][i],
+                "masks": batch["masks"][i].bool(),
             }
             targets.append(target)
 
@@ -607,13 +641,15 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
         # Get predictions
         predictions = self.predict(images)
 
-        # Prepare targets for metrics
+        # Prepare targets for metrics. torchmetrics' MeanAveragePrecision
+        # (iou_type="segm") requires boolean masks; the dataset stores masks
+        # as float.
         targets = []
         for i in range(len(batch["boxes"])):
             target = {
                 "boxes": batch["boxes"][i],
                 "labels": batch["labels"][i],
-                "masks": batch["masks"][i],
+                "masks": batch["masks"][i].bool(),
             }
             targets.append(target)
 
@@ -663,26 +699,83 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
         """
         self.eval()
         with torch.inference_mode():
-            # Get features
             features = self.backbone(images)
-            _ = self.fpn(features)
+            fpn_features = self.fpn(features)
+            cls_outputs, reg_outputs, centerness_outputs = self.detection_head(
+                fpn_features
+            )
+            img_h, img_w = images.shape[-2:]
 
-            # For simplicity, return empty predictions
-            # In production, implement proper detection + mask prediction
-            batch_size = images.shape[0]
+            detections = decode_fcos_detections(
+                cls_outputs,
+                reg_outputs,
+                centerness_outputs,
+                self.strides,
+                self.num_classes,
+                (img_h, img_w),
+                self.score_thresh,
+                self.nms_thresh,
+                self.max_detections_per_image,
+            )
+
+            # Predict masks for detected boxes via ROI Align on FPN level 0 (P3),
+            # matching the stride/resolution convention used in _compute_mask_loss.
+            feature_map = fpn_features[0]
             predictions = []
 
-            for i in range(batch_size):
+            for i, det in enumerate(detections):
+                boxes = det["boxes"]
+                labels = det["labels"]
+                scores = det["scores"]
+
+                if len(boxes) == 0:
+                    predictions.append(
+                        {
+                            "boxes": boxes,
+                            "labels": labels,
+                            "scores": scores,
+                            "masks": torch.empty(
+                                (0, img_h, img_w),
+                                dtype=torch.bool,
+                                device=images.device,
+                            ),
+                        }
+                    )
+                    continue
+
+                batch_indices = torch.full(
+                    (len(boxes), 1), i, dtype=boxes.dtype, device=images.device
+                )
+                rois = torch.cat([batch_indices, boxes], dim=1)  # [N, 5]
+
+                roi_features = ops.roi_align(
+                    feature_map,
+                    rois,
+                    output_size=(self.roi_pool_size, self.roi_pool_size),
+                    spatial_scale=1.0 / 8,  # Assuming P3 has stride 8
+                    aligned=True,
+                )
+
+                mask_logits = self.mask_head(
+                    roi_features
+                )  # [N, num_classes, mask_size, mask_size]
+                indices = torch.arange(len(labels), device=images.device)
+                mask_logits = mask_logits[indices, labels]  # [N, mask_size, mask_size]
+
+                masks = F.interpolate(
+                    mask_logits.sigmoid().unsqueeze(1),
+                    size=(img_h, img_w),
+                    mode="bilinear",
+                    align_corners=False,
+                ).squeeze(1)
+                masks = masks > self.mask_threshold
+
                 predictions.append(
                     {
-                        "boxes": torch.empty((0, 4), device=images.device),
-                        "labels": torch.empty(
-                            (0,), dtype=torch.long, device=images.device
-                        ),
-                        "scores": torch.empty((0,), device=images.device),
-                        "masks": torch.empty(
-                            (0, images.shape[2], images.shape[3]), device=images.device
-                        ),
+                        "boxes": boxes,
+                        "labels": labels,
+                        "scores": scores,
+                        "masks": masks,
                     }
                 )
 

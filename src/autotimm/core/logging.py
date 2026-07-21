@@ -2,23 +2,28 @@
 
 from __future__ import annotations
 
+import os
 import sys
 
 from loguru import logger
 
-# Remove default handler and add a custom one with colorful format
-logger.remove()
-logger.add(
-    sys.stderr,
-    format=(
-        "<green>{time:HH:mm:ss}</green> | "
-        "<level>{level: <8}</level> | "
-        "<cyan>{name}</cyan>:<cyan>{function}</cyan> - "
-        "<level>{message}</level>"
-    ),
-    level="INFO",
-    colorize=True,
-)
+# loguru's `logger` is a process-wide singleton, so reconfiguring it here runs
+# on every `import autotimm` and clobbers any sinks a host application already
+# installed. Set AUTOTIMM_NO_LOG_CONFIG=1 to opt out (e.g. when embedding
+# autotimm in an application that manages its own loguru configuration).
+if not os.environ.get("AUTOTIMM_NO_LOG_CONFIG"):
+    logger.remove()
+    logger.add(
+        sys.stderr,
+        format=(
+            "<green>{time:HH:mm:ss}</green> | "
+            "<level>{level: <8}</level> | "
+            "<cyan>{name}</cyan>:<cyan>{function}</cyan> - "
+            "<level>{message}</level>"
+        ),
+        level="INFO",
+        colorize=True,
+    )
 
 
 def log_table(title: str, headers: list[str], rows: list[list[str]]) -> None:

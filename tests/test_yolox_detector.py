@@ -91,7 +91,7 @@ def test_yolox_detector_training_step():
 
     # Create dummy batch
     batch = {
-        "images": torch.randn(2, 3, 640, 640),
+        "image": torch.randn(2, 3, 640, 640),
         "boxes": [
             torch.tensor([[10, 10, 50, 50], [100, 100, 200, 200]], dtype=torch.float32),
             torch.tensor([[20, 20, 60, 60]], dtype=torch.float32),
@@ -118,7 +118,7 @@ def test_yolox_detector_validation_step():
 
     # Create dummy batch
     batch = {
-        "images": torch.randn(2, 3, 640, 640),
+        "image": torch.randn(2, 3, 640, 640),
         "boxes": [
             torch.tensor([[10, 10, 50, 50]], dtype=torch.float32),
             torch.tensor([[20, 20, 60, 60]], dtype=torch.float32),
