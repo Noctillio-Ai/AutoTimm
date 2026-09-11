@@ -136,7 +136,7 @@ import torch
 
 
 def inspect_backbone(model_name):
-    backbone = at.create_backbone(model_name, pretrained=True)
+    backbone = at.create_backbone(at.BackboneConfig(model_name=model_name, pretrained=True))
     print(f"Model: {model_name}")
     print(f"  Parameters: {at.count_parameters(backbone):,}")
     print(f"  Output features: {backbone.num_features}")

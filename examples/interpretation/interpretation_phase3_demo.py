@@ -8,7 +8,7 @@ production-ready interpretation workflows.
 from PIL import Image
 import numpy as np
 
-from autotimm import ImageClassifier
+from autotimm import ImageClassifier, LoggerConfig
 from autotimm.interpretation import (
     InterpretationCallback,
     FeatureMonitorCallback,
@@ -63,7 +63,7 @@ def example_1_autotrainer_integration():
     trainer = AutoTrainer(
         max_epochs=100,
         callbacks=[interp_callback, feature_callback],
-        logger="tensorboard",  # or "wandb", "mlflow"
+        logger=[LoggerConfig(backend="tensorboard", params={"save_dir": "logs"})],
     )
     trainer.fit(model, datamodule=data)
     """

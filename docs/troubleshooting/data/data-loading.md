@@ -11,8 +11,6 @@ from autotimm import ImageDataModule
 
 data = ImageDataModule(
     data_dir="./data",
-    dataset_name="custom",
-    validate_images=True,  # Skip corrupted images
 )
 ```
 
@@ -85,8 +83,7 @@ class_weights = check_class_distribution(data)
 model = ImageClassifier(
     backbone="resnet50",
     num_classes=10,
-    loss_fn="crossentropyloss",
-    loss_kwargs={"weight": torch.tensor(class_weights)},
+    loss_fn=torch.nn.CrossEntropyLoss(weight=torch.tensor(class_weights)),
 )
 ```
 

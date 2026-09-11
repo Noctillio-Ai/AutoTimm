@@ -259,7 +259,7 @@ top_channels = viz.get_top_activating_features(
 Monitor model interpretations during training:
 
 ```python
-from autotimm import AutoTrainer
+from autotimm import AutoTrainer, LoggerConfig
 from autotimm.interpretation import InterpretationCallback
 
 # Sample images for monitoring
@@ -278,7 +278,7 @@ interp_callback = InterpretationCallback(
 trainer = AutoTrainer(
     max_epochs=100,
     callbacks=[interp_callback],
-    logger="tensorboard",  # or "wandb", "mlflow"
+    logger=[LoggerConfig(backend="tensorboard", params={"save_dir": "logs"})],
 )
 trainer.fit(model, datamodule=data)
 ```

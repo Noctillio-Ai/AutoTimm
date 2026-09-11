@@ -86,7 +86,7 @@ data = ImageDataModule(
     data_dir="./dataset",
     transform_backend="albumentations",
     train_transforms=custom_train,
-    val_transforms=custom_val,
+    eval_transforms=custom_val,
 )
 ```
 
@@ -108,9 +108,7 @@ data = ImageDataModule(
     transform_backend="albumentations",  # or "torchvision"
     augmentation_preset="strong",  # "default", "light", or None
     balanced_sampling=False,  # Enable for imbalanced datasets
-    train_split=0.8,
     val_split=0.1,
-    test_split=0.1,
 )
 
 data.setup("fit")
