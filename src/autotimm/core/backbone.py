@@ -87,6 +87,24 @@ def get_model_source(model_name: str) -> ModelSource:
     return ModelSource.TIMM
 
 
+def _validate_timm_model_name(model_name: str) -> None:
+    """Raise ValueError if *model_name* is not a known timm model.
+
+    HF Hub names are skipped (they are not in ``timm.list_models()``).
+    Pretrained-tag suffixes (e.g. ``"resnet50.a1_in1k"``) are stripped
+    before checking, since ``timm.list_models()`` returns untagged names.
+    """
+    if _is_hf_hub_model(model_name):
+        return
+    base_name = model_name.split(".")[0]
+    if base_name not in timm.list_models():
+        raise ValueError(
+            f"Model '{model_name}' not found in timm. "
+            f"Use autotimm.list_backbones('*pattern*') to search, "
+            f"or use 'hf-hub:' prefix for Hugging Face Hub models."
+        )
+
+
 def create_backbone(cfg: BackboneConfig | str) -> nn.Module:
     """Create a timm backbone from a config or model name string.
 
@@ -108,14 +126,7 @@ def create_backbone(cfg: BackboneConfig | str) -> nn.Module:
         cfg = BackboneConfig(model_name=cfg)
 
     # Skip validation for HF Hub models as they're not in timm.list_models()
-    if not _is_hf_hub_model(cfg.model_name):
-        available = timm.list_models()
-        if cfg.model_name not in available:
-            raise ValueError(
-                f"Model '{cfg.model_name}' not found in timm. "
-                f"Use autotimm.list_backbones('*pattern*') to search, "
-                f"or use 'hf-hub:' prefix for Hugging Face Hub models."
-            )
+    _validate_timm_model_name(cfg.model_name)
 
     return timm.create_model(
         cfg.model_name,
@@ -294,14 +305,7 @@ def create_feature_backbone(cfg: FeatureBackboneConfig | str) -> nn.Module:
         cfg = FeatureBackboneConfig(model_name=cfg)
 
     # Skip validation for HF Hub models as they're not in timm.list_models()
-    if not _is_hf_hub_model(cfg.model_name):
-        available = timm.list_models()
-        if cfg.model_name not in available:
-            raise ValueError(
-                f"Model '{cfg.model_name}' not found in timm. "
-                f"Use autotimm.list_backbones('*pattern*') to search, "
-                f"or use 'hf-hub:' prefix for Hugging Face Hub models."
-            )
+    _validate_timm_model_name(cfg.model_name)
 
     return timm.create_model(
         cfg.model_name,

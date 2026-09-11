@@ -114,13 +114,13 @@ class InstanceSegmentationDataModule(pl.LightningDataModule):
                 backbone=self.backbone,
                 transform_config=self.transform_config,
                 is_train=True,
-                task="segmentation",
+                task="instance_segmentation",
             )
             val_transforms = get_transforms_from_backbone(
                 backbone=self.backbone,
                 transform_config=self.transform_config,
                 is_train=False,
-                task="segmentation",
+                task="instance_segmentation",
             )
         elif self.custom_train_transforms is not None:
             train_transforms = self.custom_train_transforms
