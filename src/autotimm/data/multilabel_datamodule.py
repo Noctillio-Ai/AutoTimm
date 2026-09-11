@@ -8,7 +8,7 @@ from typing import Callable
 
 import pytorch_lightning as pl
 import torch.nn as nn
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, Subset, random_split
 
 from autotimm.data.transform_config import TransformConfig
 from autotimm.data.transforms import (
@@ -185,11 +185,22 @@ class MultiLabelImageDataModule(pl.LightningDataModule):
                     use_albumentations=use_albu,
                 )
             else:
+                # Separate instance with eval transforms so the validation
+                # split is not augmented.
+                full_eval = MultiLabelImageDataset(
+                    csv_path=self.train_csv,
+                    image_dir=self.image_dir,
+                    label_columns=self.label_columns,
+                    image_column=self.image_column,
+                    transform=self.eval_transforms,
+                    use_albumentations=use_albu,
+                )
                 n_val = int(len(full_train) * self.val_split)
                 n_train = len(full_train) - n_val
-                self.train_dataset, self.val_dataset = random_split(
+                self.train_dataset, val_subset = random_split(
                     full_train, [n_train, n_val]
                 )
+                self.val_dataset = Subset(full_eval, val_subset.indices)
 
         if stage in ("test", None) and self.test_csv is not None:
             self.test_dataset = MultiLabelImageDataset(

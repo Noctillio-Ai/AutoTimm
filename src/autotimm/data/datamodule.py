@@ -9,7 +9,7 @@ from typing import Callable
 
 import pytorch_lightning as pl
 import torch.nn as nn
-from torch.utils.data import DataLoader, WeightedRandomSampler, random_split
+from torch.utils.data import DataLoader, Subset, WeightedRandomSampler, random_split
 from torchvision import datasets
 
 from autotimm.data.transform_config import TransformConfig
@@ -216,19 +216,24 @@ class ImageDataModule(pl.LightningDataModule):
 
         if stage in ("fit", None):
             full_train = cls(str(self.data_dir), train=True, transform=wrapper_train)
+            # Separate instance with eval transforms so the validation split
+            # is not augmented.
+            full_eval = cls(str(self.data_dir), train=True, transform=wrapper_eval)
             n_val = int(len(full_train) * self.val_split)
             n_train = len(full_train) - n_val
-            self.train_dataset, self.val_dataset = random_split(
+            self.train_dataset, val_subset = random_split(
                 full_train, [n_train, n_val]
             )
+            self.val_dataset = Subset(full_eval, val_subset.indices)
             self.num_classes = (
                 len(full_train.classes) if hasattr(full_train, "classes") else 10
             )
             self.class_names = (
                 list(full_train.classes) if hasattr(full_train, "classes") else None
             )
+            # int() so tensor targets (e.g. MNIST) hash by value, not identity
             self._train_targets = [
-                full_train.targets[i] for i in self.train_dataset.indices
+                int(full_train.targets[i]) for i in self.train_dataset.indices
             ]
         if stage in ("test", None):
             self.test_dataset = cls(
@@ -241,23 +246,36 @@ class ImageDataModule(pl.LightningDataModule):
         test_dir = self.data_dir / "test"
 
         if stage in ("fit", None):
-            self.train_dataset = datasets.ImageFolder(
+            full_train = datasets.ImageFolder(
                 str(train_dir), transform=self.train_transforms
             )
-            self.num_classes = len(self.train_dataset.classes)
-            self.class_names = list(self.train_dataset.classes)
-            self._train_targets = [s[1] for s in self.train_dataset.samples]
+            self.train_dataset = full_train
+            self.num_classes = len(full_train.classes)
+            self.class_names = list(full_train.classes)
+            all_targets = [s[1] for s in full_train.samples]
+            self._train_targets = all_targets
 
             if val_dir.exists():
                 self.val_dataset = datasets.ImageFolder(
                     str(val_dir), transform=self.eval_transforms
                 )
             else:
-                n_val = int(len(self.train_dataset) * self.val_split)
-                n_train = len(self.train_dataset) - n_val
-                self.train_dataset, self.val_dataset = random_split(
-                    self.train_dataset, [n_train, n_val]
+                # Separate instance with eval transforms so the validation
+                # split is not augmented.
+                full_eval = datasets.ImageFolder(
+                    str(train_dir), transform=self.eval_transforms
                 )
+                n_val = int(len(full_train) * self.val_split)
+                n_train = len(full_train) - n_val
+                self.train_dataset, val_subset = random_split(
+                    full_train, [n_train, n_val]
+                )
+                self.val_dataset = Subset(full_eval, val_subset.indices)
+                # Recompute targets for the subset so balanced sampling
+                # weights align with the sampled indices.
+                self._train_targets = [
+                    all_targets[i] for i in self.train_dataset.indices
+                ]
         if stage in ("test", None) and test_dir.exists():
             self.test_dataset = datasets.ImageFolder(
                 str(test_dir), transform=self.eval_transforms
@@ -271,23 +289,36 @@ class ImageDataModule(pl.LightningDataModule):
         test_dir = self.data_dir / "test"
 
         if stage in ("fit", None):
-            self.train_dataset = ImageFolderCV2(
+            full_train = ImageFolderCV2(
                 str(train_dir), transform=self.train_transforms
             )
-            self.num_classes = len(self.train_dataset.classes)
-            self.class_names = list(self.train_dataset.classes)
-            self._train_targets = [s[1] for s in self.train_dataset.samples]
+            self.train_dataset = full_train
+            self.num_classes = len(full_train.classes)
+            self.class_names = list(full_train.classes)
+            all_targets = [s[1] for s in full_train.samples]
+            self._train_targets = all_targets
 
             if val_dir.exists():
                 self.val_dataset = ImageFolderCV2(
                     str(val_dir), transform=self.eval_transforms
                 )
             else:
-                n_val = int(len(self.train_dataset) * self.val_split)
-                n_train = len(self.train_dataset) - n_val
-                self.train_dataset, self.val_dataset = random_split(
-                    self.train_dataset, [n_train, n_val]
+                # Separate instance with eval transforms so the validation
+                # split is not augmented.
+                full_eval = ImageFolderCV2(
+                    str(train_dir), transform=self.eval_transforms
                 )
+                n_val = int(len(full_train) * self.val_split)
+                n_train = len(full_train) - n_val
+                self.train_dataset, val_subset = random_split(
+                    full_train, [n_train, n_val]
+                )
+                self.val_dataset = Subset(full_eval, val_subset.indices)
+                # Recompute targets for the subset so balanced sampling
+                # weights align with the sampled indices.
+                self._train_targets = [
+                    all_targets[i] for i in self.train_dataset.indices
+                ]
         if stage in ("test", None) and test_dir.exists():
             self.test_dataset = ImageFolderCV2(
                 str(test_dir), transform=self.eval_transforms
@@ -301,7 +332,7 @@ class ImageDataModule(pl.LightningDataModule):
         img_dir = self.image_dir or self.train_csv.parent
 
         if stage in ("fit", None):
-            self.train_dataset = CSVImageDataset(
+            full_train = CSVImageDataset(
                 csv_path=self.train_csv,
                 image_dir=img_dir,
                 image_column=self.image_column,
@@ -309,9 +340,11 @@ class ImageDataModule(pl.LightningDataModule):
                 transform=self.train_transforms,
                 use_albumentations=use_albu,
             )
-            self.num_classes = self.train_dataset.num_classes
-            self.class_names = list(self.train_dataset.classes)
-            self._train_targets = [s[1] for s in self.train_dataset.samples]
+            self.train_dataset = full_train
+            self.num_classes = full_train.num_classes
+            self.class_names = list(full_train.classes)
+            all_targets = [s[1] for s in full_train.samples]
+            self._train_targets = all_targets
 
             if self.val_csv is not None:
                 self.val_dataset = CSVImageDataset(
@@ -323,11 +356,27 @@ class ImageDataModule(pl.LightningDataModule):
                     use_albumentations=use_albu,
                 )
             else:
-                n_val = int(len(self.train_dataset) * self.val_split)
-                n_train = len(self.train_dataset) - n_val
-                self.train_dataset, self.val_dataset = random_split(
-                    self.train_dataset, [n_train, n_val]
+                # Separate instance with eval transforms so the validation
+                # split is not augmented.
+                full_eval = CSVImageDataset(
+                    csv_path=self.train_csv,
+                    image_dir=img_dir,
+                    image_column=self.image_column,
+                    label_column=self.label_column,
+                    transform=self.eval_transforms,
+                    use_albumentations=use_albu,
                 )
+                n_val = int(len(full_train) * self.val_split)
+                n_train = len(full_train) - n_val
+                self.train_dataset, val_subset = random_split(
+                    full_train, [n_train, n_val]
+                )
+                self.val_dataset = Subset(full_eval, val_subset.indices)
+                # Recompute targets for the subset so balanced sampling
+                # weights align with the sampled indices.
+                self._train_targets = [
+                    all_targets[i] for i in self.train_dataset.indices
+                ]
 
         if stage in ("test", None) and self.test_csv is not None:
             self.test_dataset = CSVImageDataset(
