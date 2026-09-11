@@ -123,11 +123,15 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
                 stacklevel=2,
             )
 
-        # Normalize backbone to a plain string so it survives checkpoint
-        # round-trip (FeatureBackboneConfig is not serialised by save_hyperparameters).
-        backbone = (
-            backbone.model_name if hasattr(backbone, "model_name") else str(backbone)
-        )
+        # Keep the full config for backbone creation, but normalize the
+        # `backbone` local to a plain string so save_hyperparameters() stores
+        # a serializable value for checkpoint round-trips.
+        if isinstance(backbone, FeatureBackboneConfig):
+            backbone_cfg: FeatureBackboneConfig | str = backbone
+            backbone = backbone.model_name
+        else:
+            backbone = str(backbone)
+            backbone_cfg = backbone
 
         super().__init__()
         self.save_hyperparameters(
@@ -148,7 +152,7 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         )
 
         # Create feature backbone
-        self.backbone = create_feature_backbone(backbone)
+        self.backbone = create_feature_backbone(backbone_cfg)
         in_channels_list = get_feature_channels(self.backbone)
 
         # Create segmentation head

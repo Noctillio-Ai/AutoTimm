@@ -172,11 +172,21 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
                 stacklevel=2,
             )
 
-        # Normalize backbone to a plain string so it survives checkpoint
-        # round-trip (FeatureBackboneConfig is not serialised by save_hyperparameters).
-        backbone = (
-            backbone.model_name if hasattr(backbone, "model_name") else str(backbone)
-        )
+        # Keep the full config for backbone creation, but normalize the
+        # `backbone` local to a plain string so save_hyperparameters() stores
+        # a serializable value for checkpoint round-trips. The FCOS
+        # architecture needs exactly 3 feature levels (C3, C4, C5), so
+        # out_indices is always (2, 3, 4).
+        if isinstance(backbone, FeatureBackboneConfig):
+            import dataclasses
+
+            backbone_cfg = dataclasses.replace(backbone, out_indices=(2, 3, 4))
+            backbone = backbone.model_name
+        else:
+            backbone = str(backbone)
+            backbone_cfg = FeatureBackboneConfig(
+                model_name=backbone, out_indices=(2, 3, 4)
+            )
 
         super().__init__()
         self.save_hyperparameters(
@@ -228,9 +238,7 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
         # Build model. Use 3 backbone feature levels (C3, C4, C5) which,
         # combined with 2 extra FPN levels, gives P3-P7 (5 levels total) —
         # matching `strides`/`regress_ranges` above and ObjectDetector's FCOS
-        # convention. `backbone` here is always a plain model-name string (see
-        # the normalization at the top of __init__), so this always applies.
-        backbone_cfg = FeatureBackboneConfig(model_name=backbone, out_indices=(2, 3, 4))
+        # convention.
         self.backbone = create_feature_backbone(backbone_cfg)
         in_channels = get_feature_channels(self.backbone)
 
