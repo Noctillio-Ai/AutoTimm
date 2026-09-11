@@ -29,17 +29,23 @@ def preview(
     img = PILImage.open(image_path).convert("RGB")
     transform = get_train_transforms(preset, image_size=image_size)
     results: list[str] = []
+    import numpy as np
+
+    from autotimm.data.transforms import IMAGENET_MEAN, IMAGENET_STD
+
+    mean = np.array(IMAGENET_MEAN)
+    std = np.array(IMAGENET_STD)
+
     for _ in range(count):
         augmented = transform(img)
         if hasattr(augmented, "numpy"):
+            # The preset pipelines end with Normalize, so undo it for a
+            # human-viewable preview.
             if augmented.shape[0] == 3:
-                arr = (
-                    (augmented.permute(1, 2, 0).numpy() * 255)
-                    .clip(0, 255)
-                    .astype("uint8")
-                )
+                arr = augmented.permute(1, 2, 0).numpy() * std + mean
             else:
-                arr = (augmented.numpy() * 255).clip(0, 255).astype("uint8")
+                arr = augmented.numpy() * std + mean
+            arr = (arr * 255).clip(0, 255).astype("uint8")
             pil = PILImage.fromarray(arr)
         else:
             pil = augmented

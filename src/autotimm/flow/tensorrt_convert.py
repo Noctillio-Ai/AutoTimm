@@ -33,6 +33,11 @@ def convert(onnx_path: str, engine_path: str, workspace_gb: int = 1) -> str:
     config = builder.create_builder_config()
     config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, workspace_gb << 30)
     engine = builder.build_serialized_network(network, config)
+    if engine is None:
+        raise RuntimeError(
+            "TensorRT engine build failed (build_serialized_network returned None). "
+            "Check the TensorRT log output for details."
+        )
 
     with open(engine_path, "wb") as f:
         f.write(engine)
