@@ -348,7 +348,12 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         Returns:
             Loss value
         """
-        # Resize logits to match mask size if needed
+        logits = self._match_mask_size(logits, masks)
+        return self.criterion(logits, masks)
+
+    @staticmethod
+    def _match_mask_size(logits: torch.Tensor, masks: torch.Tensor) -> torch.Tensor:
+        """Resize logits to the mask resolution if they differ."""
         if logits.shape[-2:] != masks.shape[-2:]:
             logits = F.interpolate(
                 logits,
@@ -356,8 +361,7 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
                 mode="bilinear",
                 align_corners=False,
             )
-
-        return self.criterion(logits, masks)
+        return logits
 
     def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
         """Training step.
@@ -375,8 +379,8 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         logits = self(images)
         loss = self._compute_loss(logits, masks)
 
-        # Get predictions
-        preds = logits.argmax(dim=1)
+        # Predictions at mask resolution so metrics see matching shapes
+        preds = self._match_mask_size(logits, masks).argmax(dim=1)
 
         # Log loss
         self.log("train/loss", loss, prog_bar=True)
@@ -444,8 +448,8 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         logits = self(images)
         loss = self._compute_loss(logits, masks)
 
-        # Get predictions
-        preds = logits.argmax(dim=1)
+        # Predictions at mask resolution so metrics see matching shapes
+        preds = self._match_mask_size(logits, masks).argmax(dim=1)
 
         try:
             is_sanity = getattr(self.trainer, "sanity_checking", False)
@@ -483,8 +487,8 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         logits = self(images)
         loss = self._compute_loss(logits, masks)
 
-        # Get predictions
-        preds = logits.argmax(dim=1)
+        # Predictions at mask resolution so metrics see matching shapes
+        preds = self._match_mask_size(logits, masks).argmax(dim=1)
 
         # Log loss
         self.log("test/loss", loss)
