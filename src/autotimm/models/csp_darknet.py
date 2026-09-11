@@ -9,7 +9,7 @@ CSPDarknet is the backbone used in YOLOX with Cross Stage Partial connections.
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 class SiLU(nn.Module):

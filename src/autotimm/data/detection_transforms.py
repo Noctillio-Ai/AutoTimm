@@ -7,7 +7,7 @@ from autotimm.data.transforms import IMAGENET_MEAN, IMAGENET_STD
 
 def _require_albumentations():
     try:
-        import albumentations  # noqa: F401
+        import albumentations
 
         return albumentations
     except ImportError:

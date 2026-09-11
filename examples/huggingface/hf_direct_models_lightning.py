@@ -12,16 +12,18 @@ Usage:
 
 from __future__ import annotations
 
-import torch
+import sys
+
 import pytorch_lightning as pl
+import torch
 
 try:
     from transformers import (
-        ViTModel,
+        DeiTConfig,
+        DeiTModel,
         ViTConfig,
         ViTImageProcessor,
-        DeiTModel,
-        DeiTConfig,
+        ViTModel,
     )
 
     HAS_TRANSFORMERS = True
@@ -29,7 +31,7 @@ except ImportError:
     HAS_TRANSFORMERS = False
     print("⚠️  transformers library not installed")
     print("Install with: pip install transformers")
-    exit(1)
+    sys.exit(1)
 
 
 class ViTClassifier(pl.LightningModule):
@@ -292,8 +294,8 @@ def demonstrate_image_processor():
     print("✓ Created ViTImageProcessor (no AutoImageProcessor)")
 
     # Create dummy PIL image
-    from PIL import Image
     import numpy as np
+    from PIL import Image
 
     img = Image.fromarray(np.random.randint(0, 255, (300, 300, 3), dtype=np.uint8))
 
@@ -480,4 +482,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

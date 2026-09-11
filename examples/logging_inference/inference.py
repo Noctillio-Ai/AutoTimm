@@ -197,7 +197,7 @@ def main():
     print(f"  Predictions shape: {all_probs.shape}")
 
     # Get top-1 predictions
-    confidences, pred_indices = all_probs.max(dim=-1)
+    confidences, _pred_indices = all_probs.max(dim=-1)
     print(f"  Mean confidence: {confidences.mean():.4f}")
 
     # Option B: Manual batch prediction

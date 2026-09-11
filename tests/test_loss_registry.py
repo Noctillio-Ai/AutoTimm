@@ -2,7 +2,7 @@
 
 import pytest
 import torch
-import torch.nn as nn
+from torch import nn
 
 from autotimm.losses import (
     DiceLoss,
@@ -309,7 +309,7 @@ class TestObjectDetectorWithLossFn:
 
         # Forward pass
         x = torch.randn(2, 3, 640, 640)
-        cls_outputs, reg_outputs, centerness_outputs = model(x)
+        cls_outputs, reg_outputs, _centerness_outputs = model(x)
         assert len(cls_outputs) == 5  # 5 FPN levels
         assert len(reg_outputs) == 5
 

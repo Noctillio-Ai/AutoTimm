@@ -1,25 +1,24 @@
 """Segmentation-specific interpretation adapters."""
 
-from typing import Optional, Union, Dict
-import torch
-import numpy as np
-from PIL import Image
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from PIL import Image
 
 
 def explain_segmentation(
     model: torch.nn.Module,
-    image: Union[str, Image.Image, np.ndarray, torch.Tensor],
-    target_class: Optional[int] = None,
+    image: str | Image.Image | np.ndarray | torch.Tensor,
+    target_class: int | None = None,
     method: str = "gradcam",
-    target_layer: Optional[Union[str, torch.nn.Module]] = None,
+    target_layer: str | torch.nn.Module | None = None,
     show_mask_overlay: bool = True,
     show_uncertainty: bool = False,
     uncertainty_method: str = "entropy",
     colormap: str = "viridis",
     alpha: float = 0.4,
-    save_path: Optional[str] = None,
-) -> Dict:
+    save_path: str | None = None,
+) -> dict:
     """
     Explain semantic segmentation predictions.
 
@@ -198,14 +197,15 @@ def _visualize_segmentation_explanation(
     heatmap: np.ndarray,
     prediction: np.ndarray,
     target_class: int,
-    uncertainty: Optional[np.ndarray] = None,
+    uncertainty: np.ndarray | None = None,
     show_mask: bool = True,
     colormap: str = "viridis",
     alpha: float = 0.4,
 ) -> np.ndarray:
     """Create visualization of segmentation explanation."""
-    from autotimm.interpretation.visualization.heatmap import overlay_heatmap
     import cv2
+
+    from autotimm.interpretation.visualization.heatmap import overlay_heatmap
 
     # Determine number of panels
     num_panels = 2  # Original + Heatmap

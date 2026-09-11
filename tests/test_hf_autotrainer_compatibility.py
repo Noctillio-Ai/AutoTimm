@@ -6,11 +6,12 @@ with the AutoTrainer class and its specific features (TunerConfig, LoggerManager
 
 from __future__ import annotations
 
-import pytest
-import torch
-import pytorch_lightning as pl
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import pytest
+import pytorch_lightning as pl
+import torch
 
 from autotimm import (
     AutoTrainer,
@@ -20,7 +21,7 @@ from autotimm import (
 )
 
 try:
-    from transformers import ViTModel, ViTConfig
+    from transformers import ViTConfig, ViTModel
 
     HAS_TRANSFORMERS = True
 except ImportError:

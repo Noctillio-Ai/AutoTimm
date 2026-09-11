@@ -10,11 +10,12 @@ Usage:
 
 from __future__ import annotations
 
+import sys
 import tempfile
 from pathlib import Path
 
-import torch
 import pytorch_lightning as pl
+import torch
 
 import autotimm as at  # recommended alias
 from autotimm import (
@@ -431,4 +432,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

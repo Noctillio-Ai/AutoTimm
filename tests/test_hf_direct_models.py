@@ -7,11 +7,11 @@ directly with PyTorch Lightning, without relying on AutoModel/AutoImageProcessor
 from __future__ import annotations
 
 import pytest
-import torch
 import pytorch_lightning as pl
+import torch
 
 try:
-    from transformers import ViTModel, ViTConfig, ViTImageProcessor
+    from transformers import ViTConfig, ViTImageProcessor, ViTModel
 
     HAS_TRANSFORMERS = True
 except ImportError:
@@ -198,8 +198,8 @@ class TestHFDirectModels:
             )
 
             # Create dummy PIL image
-            from PIL import Image
             import numpy as np
+            from PIL import Image
 
             img = Image.fromarray(
                 np.random.randint(0, 255, (224, 224, 3), dtype=np.uint8)
@@ -277,7 +277,7 @@ class TestOtherHFModels:
     def test_deit_model(self):
         """Test DeiT model directly."""
         try:
-            from transformers import DeiTModel, DeiTConfig
+            from transformers import DeiTConfig, DeiTModel
 
             config = DeiTConfig(
                 hidden_size=768,
@@ -303,7 +303,7 @@ class TestOtherHFModels:
     def test_beit_model(self):
         """Test BEiT model directly."""
         try:
-            from transformers import BeitModel, BeitConfig
+            from transformers import BeitConfig, BeitModel
 
             config = BeitConfig(
                 hidden_size=768,

@@ -21,8 +21,8 @@ from PIL import Image
 from autotimm import (
     AutoTrainer,
     MetricConfig,
-    SemanticSegmentor,
     SegmentationDataModule,
+    SemanticSegmentor,
 )
 
 

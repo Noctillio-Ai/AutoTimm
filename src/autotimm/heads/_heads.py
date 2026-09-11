@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import math
-from typing import Sequence
+from collections.abc import Sequence
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 
 class ClassificationHead(nn.Module):
@@ -70,10 +70,11 @@ class FPN(nn.Module):
 
         # Extra levels (P6, P7) from P5
         self.extra_convs = nn.ModuleList()
-        for i in range(num_extra_levels):
-            in_ch = out_channels if i == 0 else out_channels
+        for _ in range(num_extra_levels):
             self.extra_convs.append(
-                nn.Conv2d(in_ch, out_channels, kernel_size=3, stride=2, padding=1)
+                nn.Conv2d(
+                    out_channels, out_channels, kernel_size=3, stride=2, padding=1
+                )
             )
 
         self._init_weights()

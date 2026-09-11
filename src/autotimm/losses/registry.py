@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
-import torch.nn as nn
+from torch import nn
 
 from autotimm.losses.detection import (
     CenternessLoss,
@@ -40,7 +40,7 @@ class LossRegistry:
     """
 
     # Classification losses
-    CLASSIFICATION_LOSSES = {
+    CLASSIFICATION_LOSSES: ClassVar[dict[str, type[nn.Module]]] = {
         "cross_entropy": nn.CrossEntropyLoss,
         "bce": nn.BCEWithLogitsLoss,
         "bce_with_logits": nn.BCEWithLogitsLoss,
@@ -49,7 +49,7 @@ class LossRegistry:
     }
 
     # Detection losses
-    DETECTION_LOSSES = {
+    DETECTION_LOSSES: ClassVar[dict[str, type[nn.Module]]] = {
         "focal": FocalLoss,
         "giou": GIoULoss,
         "centerness": CenternessLoss,
@@ -57,7 +57,7 @@ class LossRegistry:
     }
 
     # Segmentation losses
-    SEGMENTATION_LOSSES = {
+    SEGMENTATION_LOSSES: ClassVar[dict[str, type[nn.Module]]] = {
         "dice": DiceLoss,
         "focal_pixelwise": FocalLossPixelwise,
         "tversky": TverskyLoss,
@@ -159,15 +159,15 @@ class LossRegistry:
             >>> registry.list_losses(task="segmentation")  # Only segmentation losses
         """
         if task is None:
-            return sorted(list(self._registry.keys()))
+            return sorted(self._registry.keys())
 
         task = task.lower()
         if task == "classification":
-            return sorted(list(self.CLASSIFICATION_LOSSES.keys()))
+            return sorted(self.CLASSIFICATION_LOSSES.keys())
         elif task == "detection":
-            return sorted(list(self.DETECTION_LOSSES.keys()))
+            return sorted(self.DETECTION_LOSSES.keys())
         elif task == "segmentation":
-            return sorted(list(self.SEGMENTATION_LOSSES.keys()))
+            return sorted(self.SEGMENTATION_LOSSES.keys())
         else:
             raise ValueError(
                 f"Unknown task: {task}. "

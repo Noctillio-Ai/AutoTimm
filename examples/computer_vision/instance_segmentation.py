@@ -21,8 +21,8 @@ Expected directory structure:
 
 from autotimm import (
     AutoTrainer,
-    InstanceSegmentor,
     InstanceSegmentationDataModule,
+    InstanceSegmentor,
     LoggerConfig,
     LoggingConfig,
     MetricConfig,

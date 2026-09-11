@@ -2,12 +2,12 @@
 
 from autotimm.interpretation.visualization.heatmap import (
     apply_colormap,
-    overlay_heatmap,
     create_comparison_figure,
+    overlay_heatmap,
 )
 
 __all__ = [
     "apply_colormap",
-    "overlay_heatmap",
     "create_comparison_figure",
+    "overlay_heatmap",
 ]

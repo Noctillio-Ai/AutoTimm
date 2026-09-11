@@ -2,33 +2,33 @@
 
 from __future__ import annotations
 
-from contextlib import contextmanager
 import datetime as _dt
 import getpass
+from contextlib import contextmanager
 from typing import Any
 
 import pytorch_lightning as pl
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torchvision.ops as ops
+from torch import nn
+from torchvision import ops
 
 from autotimm.core.backbone import (
     FeatureBackboneConfig,
     create_feature_backbone,
     get_feature_channels,
 )
+from autotimm.core.metrics import LoggingConfig, MetricConfig, MetricManager
+from autotimm.core.utils import seed_everything
 from autotimm.data.transform_config import TransformConfig
 from autotimm.heads import FPN, DetectionHead, MaskHead
 from autotimm.losses import FocalLoss, GIoULoss, get_loss_registry
 from autotimm.losses.segmentation import MaskLoss
-from autotimm.core.metrics import LoggingConfig, MetricConfig, MetricManager
-from autotimm.tasks.preprocessing_mixin import PreprocessingMixin
-from autotimm.core.utils import seed_everything
 from autotimm.tasks._fcos_targets import (
     compute_fcos_detection_loss,
     decode_fcos_detections,
 )
+from autotimm.tasks.preprocessing_mixin import PreprocessingMixin
 
 
 @contextmanager
@@ -203,7 +203,9 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
             {
                 "backbone_name": backbone,
                 "username": getpass.getuser(),
-                "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
+                "timestamp": _dt.datetime.now()
+                .astimezone()
+                .isoformat(timespec="seconds"),
             }
         )
 
@@ -660,7 +662,7 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
             targets.append(target)
 
         # Update metrics
-        for name, metric in self.val_metrics.items():
+        for metric in self.val_metrics.values():
             metric.update(predictions, targets)
 
     def test_step(self, batch: dict[str, Any], batch_idx: int) -> None:
@@ -688,7 +690,7 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
             targets.append(target)
 
         # Update metrics
-        for name, metric in self.test_metrics.items():
+        for metric in self.test_metrics.values():
             metric.update(predictions, targets)
 
     def on_validation_epoch_end(self) -> None:

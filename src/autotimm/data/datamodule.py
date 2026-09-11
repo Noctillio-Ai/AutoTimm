@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import os
 from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
+from typing import ClassVar
 
 import pytorch_lightning as pl
-import torch.nn as nn
+from torch import nn
 from torch.utils.data import DataLoader, Subset, WeightedRandomSampler, random_split
 from torchvision import datasets
 
@@ -79,7 +80,7 @@ class ImageDataModule(pl.LightningDataModule):
             class imbalance in the training set.
     """
 
-    BUILTIN_DATASETS: dict[str, type] = {
+    BUILTIN_DATASETS: ClassVar[dict[str, type]] = {
         "CIFAR10": datasets.CIFAR10,
         "CIFAR100": datasets.CIFAR100,
         "FashionMNIST": datasets.FashionMNIST,

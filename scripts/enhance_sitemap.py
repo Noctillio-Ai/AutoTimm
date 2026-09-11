@@ -4,6 +4,7 @@ Enhance sitemap.xml with proper metadata (lastmod, changefreq, priority).
 This resolves common search engine processing errors.
 """
 
+import sys
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
@@ -23,7 +24,7 @@ def enhance_sitemap(sitemap_path: str):
     ET.register_namespace("", "http://www.sitemaps.org/schemas/sitemap/0.9")
 
     # Get current date in W3C format
-    current_date = datetime.now().strftime("%Y-%m-%d")
+    current_date = datetime.now().astimezone().strftime("%Y-%m-%d")
 
     # Process each URL entry
     for url in root.findall("sm:url", ns):
@@ -132,7 +133,7 @@ if __name__ == "__main__":
 
     if not sitemap_path.exists():
         print(f"Error: Sitemap not found at {sitemap_path}")
-        exit(1)
+        sys.exit(1)
 
     # Backup original
     backup_path = sitemap_path.with_suffix(".xml.bak")

@@ -1,6 +1,7 @@
 """Test AutoTrainer seeding functionality."""
 
 import torch
+
 from autotimm import AutoTrainer, ImageClassifier
 
 

@@ -86,7 +86,7 @@ class COCOInstanceDataset(Dataset):
 
         # Filter images with valid annotations
         self.image_ids = []
-        for img_id in self.images.keys():
+        for img_id in self.images:
             if img_id in self.img_to_anns:
                 self.image_ids.append(img_id)
 

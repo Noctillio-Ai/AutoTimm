@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import Literal
 
 from autotimm.core.logging import logger
-
 from autotimm.data.transform_config import (
     ALBUMENTATIONS_PRESETS,
     TORCHVISION_PRESETS,
@@ -345,6 +344,6 @@ def _print_comparison(comparison: dict) -> None:
 
 __all__ = [
     "BackendRecommendation",
-    "recommend_backend",
     "compare_backends",
+    "recommend_backend",
 ]

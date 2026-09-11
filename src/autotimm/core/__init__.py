@@ -15,7 +15,7 @@ from autotimm.core.backbone import (
     list_hf_hub_backbones,
 )
 from autotimm.core.loggers import LoggerConfig, LoggerManager
-from autotimm.core.logging import logger, log_table
+from autotimm.core.logging import log_table, logger
 from autotimm.core.metrics import LoggingConfig, MetricConfig, MetricManager
 from autotimm.core.utils import (
     count_parameters,
@@ -27,7 +27,13 @@ from autotimm.core.utils import (
 __all__ = [
     "BackboneConfig",
     "FeatureBackboneConfig",
+    "LoggerConfig",
+    "LoggerManager",
+    "LoggingConfig",
+    "MetricConfig",
+    "MetricManager",
     "ModelSource",
+    "count_parameters",
     "create_backbone",
     "create_feature_backbone",
     "get_backbone_out_features",
@@ -37,15 +43,9 @@ __all__ = [
     "get_model_source",
     "list_backbones",
     "list_hf_hub_backbones",
-    "LoggerConfig",
-    "LoggerManager",
-    "logger",
-    "log_table",
-    "LoggingConfig",
-    "MetricConfig",
-    "MetricManager",
-    "count_parameters",
     "list_optimizers",
     "list_schedulers",
+    "log_table",
+    "logger",
     "seed_everything",
 ]

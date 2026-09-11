@@ -15,13 +15,12 @@ Usage:
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
-from typing import Dict, List
+from torch import nn
 
 from autotimm import (
+    AutoTrainer,
     ImageClassifier,
     ImageDataModule,
-    AutoTrainer,
 )
 
 
@@ -146,7 +145,7 @@ def example_2_progressive_unfreezing():
     print("  5. Unfreeze all + train (5 epochs)")
 
     # Helper function to unfreeze specific layers
-    def unfreeze_layers(model, layer_names: List[str]):
+    def unfreeze_layers(model, layer_names: list[str]):
         """Unfreeze specific layers by name."""
         for name, param in model.named_parameters():
             if any(layer_name in name for layer_name in layer_names):
@@ -221,7 +220,7 @@ def example_3_layer_wise_lr_decay():
         model: nn.Module,
         base_lr: float = 1e-4,
         decay_factor: float = 0.8,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Create parameter groups with decaying learning rates.
 

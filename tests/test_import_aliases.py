@@ -54,9 +54,9 @@ class TestImportAliases:
 
     def test_import_from_aliases(self):
         """Test importing from aliases."""
+        from autotimm.head import DeepLabV3PlusHead
         from autotimm.loss import DiceLoss
         from autotimm.metric import MetricConfig
-        from autotimm.head import DeepLabV3PlusHead
         from autotimm.task import SemanticSegmentor
 
         assert DiceLoss is not None
@@ -66,8 +66,9 @@ class TestImportAliases:
 
     def test_original_imports_still_work(self):
         """Test that original imports still work."""
-        from autotimm.losses import DiceLoss as DiceLoss1
         from autotimm.loss import DiceLoss as DiceLoss2
+
+        from autotimm.losses import DiceLoss as DiceLoss1
 
         # Should be the same class
         assert DiceLoss1 is DiceLoss2
@@ -117,11 +118,11 @@ class TestImportAliases:
         """Test all head classes are accessible via alias."""
         from autotimm.head import (
             ASPP,
+            FPN,
             ClassificationHead,
             DeepLabV3PlusHead,
             DetectionHead,
             FCNHead,
-            FPN,
             MaskHead,
         )
 

@@ -18,9 +18,15 @@ import torch
 
 from autotimm.export._export import export_checkpoint_to_onnx
 from autotimm.export._export_cli_common import (
-    get_hparams as _get_hparams,
     build_load_overrides as _build_load_overrides,
+)
+from autotimm.export._export_cli_common import (
+    get_hparams as _get_hparams,
+)
+from autotimm.export._export_cli_common import (
     resolve_input_size as _resolve_input_size,
+)
+from autotimm.export._export_cli_common import (
     resolve_task_class as _resolve_task_class,
 )
 

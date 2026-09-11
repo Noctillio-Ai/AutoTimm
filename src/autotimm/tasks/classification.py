@@ -8,20 +8,20 @@ from typing import Any
 
 import pytorch_lightning as pl
 import torch
-import torch.nn as nn
 import torchmetrics
+from torch import nn
 
 from autotimm.core.backbone import (
     BackboneConfig,
     create_backbone,
     get_backbone_out_features,
 )
+from autotimm.core.metrics import LoggingConfig, MetricConfig, MetricManager
+from autotimm.core.utils import seed_everything
 from autotimm.data.transform_config import TransformConfig
 from autotimm.heads import ClassificationHead
 from autotimm.losses import get_loss_registry
-from autotimm.core.metrics import LoggingConfig, MetricConfig, MetricManager
 from autotimm.tasks.preprocessing_mixin import PreprocessingMixin
-from autotimm.core.utils import seed_everything
 
 
 class ImageClassifier(PreprocessingMixin, pl.LightningModule):
@@ -174,7 +174,9 @@ class ImageClassifier(PreprocessingMixin, pl.LightningModule):
             {
                 "backbone_name": backbone,
                 "username": getpass.getuser(),
-                "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
+                "timestamp": _dt.datetime.now()
+                .astimezone()
+                .isoformat(timespec="seconds"),
             }
         )
 

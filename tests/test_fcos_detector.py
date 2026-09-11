@@ -12,13 +12,13 @@ import torch
 
 from autotimm.heads import DetectionHead
 from autotimm.losses import FCOSLoss
-from autotimm.tasks.object_detection import ObjectDetector
 from autotimm.tasks._fcos_targets import (
     compute_fcos_detection_loss,
     compute_iou_loss,
     compute_targets_per_level,
     decode_fcos_detections,
 )
+from autotimm.tasks.object_detection import ObjectDetector
 
 # ---------------------------------------------------------------------------
 # compute_targets_per_level

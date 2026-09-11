@@ -14,7 +14,7 @@ from typing import Any
 
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 
 from autotimm.core.logging import logger
 
@@ -748,12 +748,12 @@ def export_checkpoint_to_onnx(
 
 
 __all__ = [
-    "export_to_torchscript",
-    "load_torchscript",
-    "export_checkpoint_to_torchscript",
-    "validate_torchscript_export",
-    "export_to_onnx",
-    "load_onnx",
     "export_checkpoint_to_onnx",
+    "export_checkpoint_to_torchscript",
+    "export_to_onnx",
+    "export_to_torchscript",
+    "load_onnx",
+    "load_torchscript",
     "validate_onnx_export",
+    "validate_torchscript_export",
 ]

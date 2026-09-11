@@ -5,6 +5,7 @@ https://github.com/Megvii-BaseDetection/YOLOX
 """
 
 import math
+
 from torch.optim.lr_scheduler import _LRScheduler
 
 

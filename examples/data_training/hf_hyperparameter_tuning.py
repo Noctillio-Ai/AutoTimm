@@ -16,13 +16,14 @@ Requirements:
 
 from __future__ import annotations
 
-import torch
 import time
 
+import torch
+
 from autotimm import (
+    AutoTrainer,
     ImageClassifier,
     ImageDataModule,
-    AutoTrainer,
 )
 
 # Optional: Optuna for hyperparameter optimization
@@ -31,8 +32,8 @@ try:
     from optuna.trial import Trial
     from optuna.visualization import (
         plot_optimization_history,
-        plot_param_importances,
         plot_parallel_coordinate,
+        plot_param_importances,
     )
 
     OPTUNA_AVAILABLE = True

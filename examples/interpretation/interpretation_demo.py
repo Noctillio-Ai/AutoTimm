@@ -5,14 +5,14 @@ This example shows how to use GradCAM and other interpretation methods
 to visualize what your model is looking at when making predictions.
 """
 
-from PIL import Image
 import numpy as np
+from PIL import Image
 
 from autotimm import ImageClassifier
 from autotimm.interpretation import (
     GradCAM,
-    explain_prediction,
     compare_methods,
+    explain_prediction,
     quick_explain,
 )
 

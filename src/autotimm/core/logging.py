@@ -61,4 +61,4 @@ def log_table(title: str, headers: list[str], rows: list[list[str]]) -> None:
     logger.info("\n".join(lines))
 
 
-__all__ = ["logger", "log_table"]
+__all__ = ["log_table", "logger"]

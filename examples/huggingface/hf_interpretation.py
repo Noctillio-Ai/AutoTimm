@@ -14,16 +14,17 @@ Usage:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 from PIL import Image
-from pathlib import Path
 
 from autotimm import ImageClassifier, list_hf_hub_backbones
 from autotimm.interpretation import (
+    AttentionVisualizer,
     GradCAM,
     GradCAMPlusPlus,
     IntegratedGradients,
-    AttentionVisualizer,
 )
 from autotimm.interpretation.metrics import ExplanationMetrics
 from autotimm.interpretation.visualization.heatmap import save_heatmap

@@ -14,9 +14,8 @@ Usage:
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-from typing import List
+from torch import nn
 
 from autotimm import ImageClassifier
 
@@ -31,7 +30,7 @@ def create_sample_data(batch_size: int = 8, num_classes: int = 10):
 class SimpleEnsemble(nn.Module):
     """Simple averaging ensemble of multiple models."""
 
-    def __init__(self, models: List[nn.Module]):
+    def __init__(self, models: list[nn.Module]):
         super().__init__()
         self.models = nn.ModuleList(models)
 
@@ -44,7 +43,7 @@ class SimpleEnsemble(nn.Module):
                 pred = model(x)
                 if isinstance(pred, dict):
                     pred = pred.get(
-                        "logits", pred.get("output", list(pred.values())[0])
+                        "logits", pred.get("output", next(iter(pred.values())))
                     )
                 predictions.append(pred)
 
@@ -56,7 +55,7 @@ class SimpleEnsemble(nn.Module):
 class WeightedEnsemble(nn.Module):
     """Weighted ensemble with learnable weights."""
 
-    def __init__(self, models: List[nn.Module], num_classes: int):
+    def __init__(self, models: list[nn.Module], num_classes: int):
         super().__init__()
         self.models = nn.ModuleList(models)
         # Learnable weights for each model
@@ -71,7 +70,7 @@ class WeightedEnsemble(nn.Module):
                 pred = model(x)
                 if isinstance(pred, dict):
                     pred = pred.get(
-                        "logits", pred.get("output", list(pred.values())[0])
+                        "logits", pred.get("output", next(iter(pred.values())))
                     )
                 predictions.append(pred)
 
@@ -157,7 +156,7 @@ def example_1_simple_ensemble():
     print(f"\n✓ Created ensemble with {len(models)} models")
 
     # Test ensemble
-    images, labels = create_sample_data(batch_size=4)
+    images, _labels = create_sample_data(batch_size=4)
     with torch.inference_mode():
         ensemble_pred = ensemble(images)
 
@@ -170,7 +169,7 @@ def example_1_simple_ensemble():
         with torch.inference_mode():
             pred = model(images[0:1])
             if isinstance(pred, dict):
-                pred = pred.get("logits", pred.get("output", list(pred.values())[0]))
+                pred = pred.get("logits", pred.get("output", next(iter(pred.values()))))
             top_class = pred.argmax(dim=1).item()
             confidence = F.softmax(pred, dim=1).max().item()
             print(f"  {name:20s}: Class {top_class}, Confidence {confidence:.3f}")
@@ -280,7 +279,8 @@ def example_3_knowledge_distillation():
         teacher_logits = teacher(images)
         if isinstance(teacher_logits, dict):
             teacher_logits = teacher_logits.get(
-                "logits", teacher_logits.get("output", list(teacher_logits.values())[0])
+                "logits",
+                teacher_logits.get("output", next(iter(teacher_logits.values()))),
             )
 
     # Get student predictions
@@ -288,7 +288,7 @@ def example_3_knowledge_distillation():
     student_logits = student(images)
     if isinstance(student_logits, dict):
         student_logits = student_logits.get(
-            "logits", student_logits.get("output", list(student_logits.values())[0])
+            "logits", student_logits.get("output", next(iter(student_logits.values())))
         )
 
     # Compute distillation loss

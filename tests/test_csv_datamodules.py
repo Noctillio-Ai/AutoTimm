@@ -9,14 +9,14 @@ import pytest
 import torch
 from PIL import Image
 
-from autotimm.data.dataset import CSVImageDataset
 from autotimm.data.datamodule import ImageDataModule
-from autotimm.data.detection_dataset import CSVDetectionDataset
+from autotimm.data.dataset import CSVImageDataset
 from autotimm.data.detection_datamodule import DetectionDataModule
-from autotimm.data.segmentation_dataset import SemanticSegmentationDataset
-from autotimm.data.segmentation_datamodule import SegmentationDataModule
-from autotimm.data.instance_dataset import CSVInstanceDataset
+from autotimm.data.detection_dataset import CSVDetectionDataset
 from autotimm.data.instance_datamodule import InstanceSegmentationDataModule
+from autotimm.data.instance_dataset import CSVInstanceDataset
+from autotimm.data.segmentation_datamodule import SegmentationDataModule
+from autotimm.data.segmentation_dataset import SemanticSegmentationDataset
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -201,7 +201,7 @@ class TestCSVImageDataset:
 
     def test_class_to_idx_mapping(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            csv_path, img_dir, classes = _create_classification_csv(
+            csv_path, img_dir, _classes = _create_classification_csv(
                 tmpdir, classes=["zebra", "apple"]
             )
             ds = CSVImageDataset(csv_path=csv_path, image_dir=img_dir)
@@ -303,7 +303,7 @@ class TestImageDataModuleCSV:
 
     def test_dataloaders(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            csv_path, img_dir, classes = _create_classification_csv(
+            csv_path, img_dir, _classes = _create_classification_csv(
                 tmpdir, num_images=8
             )
             dm = ImageDataModule(
@@ -317,7 +317,7 @@ class TestImageDataModuleCSV:
             dm.setup("fit")
 
             batch = next(iter(dm.train_dataloader()))
-            images, labels = batch
+            images, _labels = batch
             assert images.ndim == 4
             assert images.shape[1] == 3
 
@@ -472,12 +472,14 @@ class TestSegmentationDatasetCSV:
             assert "orig_size" in sample
 
     def test_csv_format_without_csv_path_error(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            with pytest.raises(ValueError, match="csv_path is required"):
-                SemanticSegmentationDataset(
-                    data_dir=tmpdir,
-                    format="csv",
-                )
+        with (
+            tempfile.TemporaryDirectory() as tmpdir,
+            pytest.raises(ValueError, match="csv_path is required"),
+        ):
+            SemanticSegmentationDataset(
+                data_dir=tmpdir,
+                format="csv",
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -598,7 +600,7 @@ class TestCSVInstanceDataset:
 class TestInstanceSegmentationDataModuleCSV:
     def test_setup_with_csv(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            csv_path, data_dir, classes = _create_instance_csv(tmpdir)
+            csv_path, data_dir, _classes = _create_instance_csv(tmpdir)
             dm = InstanceSegmentationDataModule(
                 train_csv=csv_path,
                 val_csv=csv_path,

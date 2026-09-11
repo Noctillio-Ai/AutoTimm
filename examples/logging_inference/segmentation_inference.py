@@ -458,10 +458,10 @@ def create_legend(
     # Try to load a font
     try:
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14)
-    except (OSError, IOError):
+    except OSError:
         try:
             font = ImageFont.truetype("arial.ttf", 14)
-        except (OSError, IOError):
+        except OSError:
             font = ImageFont.load_default()
 
     # Draw legend items

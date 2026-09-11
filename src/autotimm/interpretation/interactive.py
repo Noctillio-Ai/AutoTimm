@@ -9,11 +9,10 @@ Provides interactive HTML-based visualizations for exploring explanations:
 
 from __future__ import annotations
 
-from typing import Optional, Union, Dict
 import numpy as np
-from PIL import Image
 import torch
-import torch.nn as nn
+from PIL import Image
+from torch import nn
 
 try:
     import plotly.graph_objects as go
@@ -71,13 +70,13 @@ class InteractiveVisualizer:
 
     def visualize_explanation(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
+        image: Image.Image | np.ndarray | torch.Tensor,
         explainer,
-        target_class: Optional[int] = None,
+        target_class: int | None = None,
         title: str = "Model Explanation",
         colorscale: str = "Viridis",
         opacity: float = 0.6,
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
         show_colorbar: bool = True,
         width: int = 800,
         height: int = 600,
@@ -115,7 +114,7 @@ class InteractiveVisualizer:
             output = self.model(input_tensor)
             if isinstance(output, dict):
                 output = output.get(
-                    "logits", output.get("output", list(output.values())[0])
+                    "logits", output.get("output", next(iter(output.values())))
                 )
             pred_class = output.argmax(dim=1).item()
             pred_score = torch.softmax(output, dim=1)[0, pred_class].item()
@@ -169,10 +168,10 @@ class InteractiveVisualizer:
                 showscale=show_colorbar,
                 hovertemplate="X: %{x}<br>Y: %{y}<br>Importance: %{z:.3f}<extra></extra>",
                 colorbar=(
-                    dict(
-                        title="Importance",
-                        x=1.15,
-                    )
+                    {
+                        "title": "Importance",
+                        "x": 1.15,
+                    }
                     if show_colorbar
                     else None
                 ),
@@ -183,11 +182,11 @@ class InteractiveVisualizer:
 
         # Update layout
         fig.update_layout(
-            title=dict(
-                text=f"{title}<br><sub>Predicted: Class {pred_class} (confidence: {pred_score:.3f})</sub>",
-                x=0.5,
-                xanchor="center",
-            ),
+            title={
+                "text": f"{title}<br><sub>Predicted: Class {pred_class} (confidence: {pred_score:.3f})</sub>",
+                "x": 0.5,
+                "xanchor": "center",
+            },
             width=width,
             height=height,
             showlegend=False,
@@ -206,13 +205,13 @@ class InteractiveVisualizer:
 
     def compare_methods(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        explainers: Dict[str, object],
-        target_class: Optional[int] = None,
+        image: Image.Image | np.ndarray | torch.Tensor,
+        explainers: dict[str, object],
+        target_class: int | None = None,
         title: str = "Method Comparison",
         colorscale: str = "Viridis",
         opacity: float = 0.6,
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
         width: int = 1200,
         height: int = 400,
     ) -> go.Figure:
@@ -251,7 +250,7 @@ class InteractiveVisualizer:
             output = self.model(input_tensor)
             if isinstance(output, dict):
                 output = output.get(
-                    "logits", output.get("output", list(output.values())[0])
+                    "logits", output.get("output", next(iter(output.values())))
                 )
             pred_class = output.argmax(dim=1).item()
             pred_score = torch.softmax(output, dim=1)[0, pred_class].item()
@@ -307,10 +306,10 @@ class InteractiveVisualizer:
                     showscale=(idx == n_methods + 1),  # Only show colorbar for last
                     hovertemplate=f"{method_name}<br>X: %{{x}}<br>Y: %{{y}}<br>Importance: %{{z:.3f}}<extra></extra>",
                     colorbar=(
-                        dict(
-                            title="Importance",
-                            x=1.02,
-                        )
+                        {
+                            "title": "Importance",
+                            "x": 1.02,
+                        }
                         if idx == n_methods + 1
                         else None
                     ),
@@ -321,11 +320,11 @@ class InteractiveVisualizer:
 
         # Update layout
         fig.update_layout(
-            title=dict(
-                text=f"{title}<br><sub>Predicted: Class {pred_class} (confidence: {pred_score:.3f})</sub>",
-                x=0.5,
-                xanchor="center",
-            ),
+            title={
+                "text": f"{title}<br><sub>Predicted: Class {pred_class} (confidence: {pred_score:.3f})</sub>",
+                "x": 0.5,
+                "xanchor": "center",
+            },
             width=width,
             height=height,
             showlegend=False,
@@ -343,9 +342,9 @@ class InteractiveVisualizer:
 
     def create_report(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
+        image: Image.Image | np.ndarray | torch.Tensor,
         explainer,
-        target_class: Optional[int] = None,
+        target_class: int | None = None,
         include_statistics: bool = True,
         save_path: str = "report.html",
         title: str = "Interpretation Report",
@@ -378,7 +377,7 @@ class InteractiveVisualizer:
             output = self.model(input_tensor)
             if isinstance(output, dict):
                 output = output.get(
-                    "logits", output.get("output", list(output.values())[0])
+                    "logits", output.get("output", next(iter(output.values())))
                 )
             pred_class = output.argmax(dim=1).item()
             pred_score = torch.softmax(output, dim=1)[0, pred_class].item()
@@ -558,7 +557,7 @@ class InteractiveVisualizer:
         return save_path
 
     def _preprocess_image(
-        self, image: Union[Image.Image, np.ndarray, torch.Tensor]
+        self, image: Image.Image | np.ndarray | torch.Tensor
     ) -> torch.Tensor:
         """Preprocess image to tensor."""
         if isinstance(image, torch.Tensor):

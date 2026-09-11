@@ -132,6 +132,20 @@ markers = [
 line-length = 88
 target-version = "py310"
 
+[tool.ruff.lint]
+ignore = [
+    # Broad `except Exception` (and try/except-pass) is used deliberately for
+    # best-effort fallbacks: optional integrations, logging, metric compute,
+    # and cleanup paths where any failure should degrade gracefully.
+    "BLE001",
+    "S110",
+    # Raising TypeError instead of ValueError here would change the public
+    # exception contract; revisit for a major release.
+    "TRY004",
+    # Nested guard-ifs with explanatory comments are kept for readability.
+    "SIM102",
+]
+
 [tool.ruff.lint.per-file-ignores]
 # Demo code intentionally shows constructor calls without using the result,
 # probes optional dependencies inside try/except, and (in notebooks) imports

@@ -7,12 +7,12 @@ import pytest
 import torch
 
 from autotimm import ImageClassifier
+from autotimm.core.metrics import MetricConfig
 from autotimm.export import (
     export_to_torchscript,
     load_torchscript,
     validate_torchscript_export,
 )
-from autotimm.core.metrics import MetricConfig
 
 try:
     import onnx

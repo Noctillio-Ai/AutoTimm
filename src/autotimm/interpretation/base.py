@@ -1,12 +1,12 @@
 """Base interpreter class for all interpretation methods."""
 
 from abc import ABC, abstractmethod
-from typing import Optional, Union
-import torch
-import torch.nn as nn
+
 import numpy as np
-from PIL import Image
+import torch
 import torchvision.transforms as T
+from PIL import Image
+from torch import nn
 
 
 class BaseInterpreter(ABC):
@@ -38,7 +38,7 @@ class BaseInterpreter(ABC):
     def __init__(
         self,
         model: nn.Module,
-        target_layer: Optional[Union[str, nn.Module]] = None,
+        target_layer: str | nn.Module | None = None,
         use_cuda: bool = True,
     ):
         self.model = model
@@ -72,9 +72,7 @@ class BaseInterpreter(ABC):
             if orig is not None:
                 setattr(self.model, name, orig)
 
-    def _resolve_target_layer(
-        self, target_layer: Optional[Union[str, nn.Module]]
-    ) -> nn.Module:
+    def _resolve_target_layer(self, target_layer: str | nn.Module | None) -> nn.Module:
         """
         Resolve target layer from string, module, or auto-detect.
 
@@ -165,7 +163,7 @@ class BaseInterpreter(ABC):
         self._hooks = []
 
     def _preprocess_image(
-        self, image: Union[Image.Image, np.ndarray, torch.Tensor]
+        self, image: Image.Image | np.ndarray | torch.Tensor
     ) -> torch.Tensor:
         """
         Preprocess image to tensor format suitable for model.
@@ -253,8 +251,8 @@ class BaseInterpreter(ABC):
     @abstractmethod
     def explain(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
         **kwargs,
     ) -> np.ndarray:
         """
@@ -268,12 +266,11 @@ class BaseInterpreter(ABC):
         Returns:
             Heatmap as numpy array in [0, 1]
         """
-        pass
 
     def __call__(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
         **kwargs,
     ) -> np.ndarray:
         """Convenience method for explain()."""
@@ -291,7 +288,7 @@ class BaseInterpreter(ABC):
                 return name
         return "unknown"
 
-    def set_target_layer(self, target_layer: Union[str, nn.Module]):
+    def set_target_layer(self, target_layer: str | nn.Module):
         """
         Change the target layer for interpretation.
 

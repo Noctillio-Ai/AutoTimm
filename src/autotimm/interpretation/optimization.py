@@ -7,16 +7,16 @@ Provides:
 - Memory profiling tools
 """
 
-from typing import Optional, Union, List, Dict
 import hashlib
 import pickle
-from pathlib import Path
 import time
-import torch
-import torch.nn as nn
-import numpy as np
-from PIL import Image
 import warnings
+from pathlib import Path
+
+import numpy as np
+import torch
+from PIL import Image
+from torch import nn
 
 from autotimm.core.logging import logger
 
@@ -80,9 +80,9 @@ class ExplanationCache:
 
     def _compute_key(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
+        image: Image.Image | np.ndarray | torch.Tensor,
         method: str,
-        target_class: Optional[int],
+        target_class: int | None,
         **kwargs,
     ) -> str:
         """Compute cache key for an explanation."""
@@ -105,11 +105,11 @@ class ExplanationCache:
 
     def get(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
+        image: Image.Image | np.ndarray | torch.Tensor,
         method: str,
-        target_class: Optional[int] = None,
+        target_class: int | None = None,
         **kwargs,
-    ) -> Optional[np.ndarray]:
+    ) -> np.ndarray | None:
         """
         Retrieve explanation from cache.
 
@@ -135,10 +135,10 @@ class ExplanationCache:
 
     def put(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
+        image: Image.Image | np.ndarray | torch.Tensor,
         method: str,
         explanation: np.ndarray,
-        target_class: Optional[int] = None,
+        target_class: int | None = None,
         **kwargs,
     ):
         """
@@ -199,7 +199,7 @@ class ExplanationCache:
         }
         self._save_metadata()
 
-    def stats(self) -> Dict:
+    def stats(self) -> dict:
         """Get cache statistics."""
         if not self.enabled:
             return {"enabled": False}
@@ -259,10 +259,10 @@ class BatchProcessor:
 
     def process_batch(
         self,
-        images: List[Union[Image.Image, np.ndarray, torch.Tensor]],
-        target_classes: Optional[List[int]] = None,
+        images: list[Image.Image | np.ndarray | torch.Tensor],
+        target_classes: list[int] | None = None,
         **kwargs,
-    ) -> List[np.ndarray]:
+    ) -> list[np.ndarray]:
         """
         Process multiple images efficiently.
 
@@ -303,11 +303,11 @@ class BatchProcessor:
 
     def process_batch_parallel(
         self,
-        images: List[Union[Image.Image, np.ndarray, torch.Tensor]],
-        target_classes: Optional[List[int]] = None,
+        images: list[Image.Image | np.ndarray | torch.Tensor],
+        target_classes: list[int] | None = None,
         num_workers: int = 4,
         **kwargs,
-    ) -> List[np.ndarray]:
+    ) -> list[np.ndarray]:
         """
         Process batch with parallel workers (thread-based parallelism).
 
@@ -341,7 +341,7 @@ class BatchProcessor:
         return heatmaps
 
     def _preprocess_image(
-        self, image: Union[Image.Image, np.ndarray, torch.Tensor]
+        self, image: Image.Image | np.ndarray | torch.Tensor
     ) -> torch.Tensor:
         """Preprocess image to tensor."""
         if isinstance(image, torch.Tensor):
@@ -398,7 +398,7 @@ class PerformanceProfiler:
             self.timings[name] = []
         self.timings[name].append(duration)
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get profiling statistics."""
         stats = {}
         for name, times in self.timings.items():
@@ -497,8 +497,8 @@ def optimize_for_inference(model: nn.Module, use_fp16: bool = False) -> nn.Modul
 
 
 __all__ = [
-    "ExplanationCache",
     "BatchProcessor",
+    "ExplanationCache",
     "PerformanceProfiler",
     "optimize_for_inference",
 ]

@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Any
 
 import timm
-import torch.nn as nn
+from torch import nn
 
 
 class ModelSource(str, Enum):
@@ -55,11 +55,7 @@ def _is_hf_hub_model(model_name: str) -> bool:
 
     HF Hub models start with 'hf-hub:', 'hf_hub:', or 'timm/' prefix.
     """
-    return (
-        model_name.startswith("hf-hub:")
-        or model_name.startswith("hf_hub:")
-        or model_name.startswith("timm/")
-    )
+    return model_name.startswith(("hf-hub:", "hf_hub:", "timm/"))
 
 
 def get_model_source(model_name: str) -> ModelSource:

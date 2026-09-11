@@ -1,23 +1,28 @@
 """Tests for model interpretation functionality."""
 
+from typing import ClassVar
+
+import numpy as np
 import pytest
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 from PIL import Image
+from torch import nn
 
-from autotimm.interpretation import GradCAM, GradCAMPlusPlus
-from autotimm.interpretation import explain_prediction, compare_methods, visualize_batch
 from autotimm.interpretation import (
-    FeatureVisualizer,
-    InterpretationCallback,
     FeatureMonitorCallback,
+    FeatureVisualizer,
+    GradCAM,
+    GradCAMPlusPlus,
+    InterpretationCallback,
+    compare_methods,
+    explain_prediction,
+    visualize_batch,
 )
 from autotimm.interpretation.visualization.heatmap import (
     apply_colormap,
-    overlay_heatmap,
     create_comparison_figure,
+    overlay_heatmap,
 )
 
 
@@ -567,7 +572,7 @@ class TestInterpretationCallback:
         class MockTrainer:
             current_epoch = 0
             global_step = 0
-            loggers = []
+            loggers: ClassVar[list] = []
 
         trainer = MockTrainer()
 

@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import pytorch_lightning as pl
-import torch.nn as nn
+from torch import nn
 from torch.utils.data import DataLoader, Subset, random_split
 
 from autotimm.data.transform_config import TransformConfig

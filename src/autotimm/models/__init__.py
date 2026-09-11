@@ -7,8 +7,8 @@ from autotimm.models.csp_darknet import (
     CSPLayer,
     DWConv,
     Focus,
-    SPPBottleneck,
     SiLU,
+    SPPBottleneck,
     build_csp_darknet,
     get_activation,
 )
@@ -23,6 +23,8 @@ from autotimm.models.yolox_utils import (
 )
 
 __all__ = [
+    # YOLOXPAFPN components
+    "YOLOXPAFPN",
     # CSPDarknet components
     "BaseConv",
     "Bottleneck",
@@ -32,18 +34,16 @@ __all__ = [
     "Focus",
     "SPPBottleneck",
     "SiLU",
-    "build_csp_darknet",
-    "get_activation",
-    # YOLOXPAFPN components
-    "YOLOXPAFPN",
-    "build_yolox_pafpn",
     # Schedulers
     "YOLOXLRScheduler",
     "YOLOXWarmupLR",
+    "build_csp_darknet",
+    "build_yolox_pafpn",
+    "get_activation",
+    "get_yolox_model_info",
+    "list_yolox_backbones",
+    "list_yolox_heads",
     # Utilities
     "list_yolox_models",
-    "list_yolox_backbones",
     "list_yolox_necks",
-    "list_yolox_heads",
-    "get_yolox_model_info",
 ]

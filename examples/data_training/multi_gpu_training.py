@@ -101,7 +101,7 @@ def main():
     print("=" * 60)
 
     # Use 2 specific GPUs
-    trainer_2gpu = AutoTrainer(  # noqa: F841
+    trainer_2gpu = AutoTrainer(
         max_epochs=10,
         accelerator="gpu",
         devices=2,  # Use 2 GPUs
@@ -126,7 +126,7 @@ def main():
     print("=" * 60)
 
     # DDP (Distributed Data Parallel) - default for multi-GPU
-    trainer_ddp = AutoTrainer(  # noqa: F841
+    trainer_ddp = AutoTrainer(
         max_epochs=10,
         accelerator="gpu",
         devices="auto",
@@ -169,7 +169,7 @@ def main():
     print("=" * 60)
 
     # Effective batch size = 64 * 2 GPUs * 4 accumulation = 512
-    trainer_accum = AutoTrainer(  # noqa: F841
+    trainer_accum = AutoTrainer(
         max_epochs=10,
         accelerator="gpu",
         devices=2,
@@ -196,7 +196,7 @@ def main():
     print("=" * 60)
 
     # BF16 mixed precision (recommended for Ampere+ GPUs)
-    trainer_bf16 = AutoTrainer(  # noqa: F841
+    trainer_bf16 = AutoTrainer(
         max_epochs=10,
         accelerator="gpu",
         devices="auto",
@@ -206,7 +206,7 @@ def main():
     )
 
     # FP16 mixed precision (for older GPUs)
-    trainer_fp16 = AutoTrainer(  # noqa: F841
+    trainer_fp16 = AutoTrainer(
         max_epochs=10,
         accelerator="gpu",
         devices="auto",

@@ -5,13 +5,13 @@ import pytest
 import torch
 from PIL import Image
 
+from autotimm.core.metrics import MetricConfig
 from autotimm.data.timm_transforms import (
     create_inference_transform,
     get_transforms_from_backbone,
     resolve_backbone_data_config,
 )
 from autotimm.data.transform_config import TransformConfig
-from autotimm.core.metrics import MetricConfig
 from autotimm.tasks.classification import ImageClassifier
 
 

@@ -17,11 +17,12 @@ Requirements:
 
 from __future__ import annotations
 
-import torch
-import torch.nn as nn
 import time
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import torch
+from torch import nn
 
 from autotimm import ImageClassifier
 
@@ -36,9 +37,9 @@ except ImportError:
     print("⚠ ONNX not available. Install: pip install onnx onnxruntime")
 
 try:
+    import uvicorn
     from fastapi import FastAPI, File, UploadFile
     from fastapi.responses import JSONResponse
-    import uvicorn
 
     FASTAPI_AVAILABLE = True
 except ImportError:
@@ -124,7 +125,7 @@ def example_1_onnx_export():
 
     if isinstance(torch_output, dict):
         torch_output = torch_output.get(
-            "logits", torch_output.get("output", list(torch_output.values())[0])
+            "logits", torch_output.get("output", next(iter(torch_output.values())))
         )
 
     print(f"  PyTorch inference time: {torch_time * 1000:.2f} ms")
@@ -254,7 +255,7 @@ def example_3_torchscript_export():
         if isinstance(original_output, dict):
             original_output = original_output.get(
                 "logits",
-                original_output.get("output", list(original_output.values())[0]),
+                original_output.get("output", next(iter(original_output.values()))),
             )
 
         print("✓ Traced model inference successful")

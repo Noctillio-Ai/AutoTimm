@@ -8,21 +8,21 @@ from typing import Any
 
 import pytorch_lightning as pl
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from autotimm.core.backbone import (
     FeatureBackboneConfig,
     create_feature_backbone,
     get_feature_channels,
 )
+from autotimm.core.metrics import LoggingConfig, MetricConfig, MetricManager
+from autotimm.core.utils import seed_everything
 from autotimm.data.transform_config import TransformConfig
 from autotimm.heads import DeepLabV3PlusHead, FCNHead
 from autotimm.losses import get_loss_registry
 from autotimm.losses.segmentation import CombinedSegmentationLoss, DiceLoss
-from autotimm.core.metrics import LoggingConfig, MetricConfig, MetricManager
 from autotimm.tasks.preprocessing_mixin import PreprocessingMixin
-from autotimm.core.utils import seed_everything
 
 
 class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
@@ -147,7 +147,9 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
             {
                 "backbone_name": backbone,
                 "username": getpass.getuser(),
-                "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
+                "timestamp": _dt.datetime.now()
+                .astimezone()
+                .isoformat(timespec="seconds"),
             }
         )
 

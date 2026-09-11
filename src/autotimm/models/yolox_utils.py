@@ -78,8 +78,10 @@ def list_yolox_models(verbose: bool = False) -> list[str]:
         lines = [
             "\nAvailable YOLOX Models:",
             "=" * 100,
-            f"{'Model':<12} {'Depth':<8} {'Width':<8} {'Params':<10} {'FLOPs':<10} "
-            f"{'mAP':<8} {'Description'}",
+            (
+                f"{'Model':<12} {'Depth':<8} {'Width':<8} {'Params':<10} {'FLOPs':<10} "
+                f"{'mAP':<8} {'Description'}"
+            ),
             "-" * 100,
         ]
         for name, info in models_info.items():
@@ -157,8 +159,10 @@ def list_yolox_backbones(verbose: bool = False) -> list[str]:
         lines = [
             "\nAvailable YOLOX Backbones (CSPDarknet):",
             "=" * 90,
-            f"{'Backbone':<20} {'Depth Mul':<12} {'Width Mul':<12} "
-            f"{'Output Channels':<20} {'Description'}",
+            (
+                f"{'Backbone':<20} {'Depth Mul':<12} {'Width Mul':<12} "
+                f"{'Output Channels':<20} {'Description'}"
+            ),
             "-" * 90,
         ]
         for name, info in backbones_info.items():
@@ -245,8 +249,10 @@ def list_yolox_necks(verbose: bool = False) -> list[str]:
         lines = [
             "\nAvailable YOLOX Necks (PAFPN):",
             "=" * 100,
-            f"{'Neck':<18} {'Depth':<8} {'Width':<8} "
-            f"{'Input Channels':<20} {'Out Ch':<8} {'Description'}",
+            (
+                f"{'Neck':<18} {'Depth':<8} {'Width':<8} "
+                f"{'Input Channels':<20} {'Out Ch':<8} {'Description'}"
+            ),
             "-" * 100,
         ]
         for name, info in necks_info.items():
@@ -299,8 +305,10 @@ def list_yolox_heads(verbose: bool = False) -> list[str]:
         lines = [
             "\nAvailable YOLOX Detection Heads:",
             "=" * 90,
-            f"{'Head':<15} {'Type':<18} {'Branches':<10} "
-            f"{'Outputs':<30} {'Description'}",
+            (
+                f"{'Head':<15} {'Type':<18} {'Branches':<10} "
+                f"{'Outputs':<30} {'Description'}"
+            ),
             "-" * 90,
         ]
         for name, info in heads_info.items():

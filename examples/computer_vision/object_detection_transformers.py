@@ -45,7 +45,7 @@ def main():
     print("Option 1: Vision Transformer (ViT) Backbone")
     print("=" * 60)
 
-    model_vit = ObjectDetector(  # noqa: F841
+    model_vit = ObjectDetector(
         backbone="vit_base_patch16_224",  # ViT-B/16
         num_classes=80,  # COCO has 80 classes
         metrics=metric_configs,
@@ -70,7 +70,7 @@ def main():
     print("Option 2: Swin Transformer Backbone")
     print("=" * 60)
 
-    model_swin = ObjectDetector(  # noqa: F841
+    model_swin = ObjectDetector(
         backbone="swin_tiny_patch4_window7_224",  # Swin-T
         num_classes=80,
         metrics=metric_configs,
@@ -95,7 +95,7 @@ def main():
     print("Option 3: DeiT (Data-Efficient Image Transformer)")
     print("=" * 60)
 
-    model_deit = ObjectDetector(  # noqa: F841
+    model_deit = ObjectDetector(
         backbone="deit_base_patch16_224",  # DeiT-B/16
         num_classes=80,
         metrics=metric_configs,

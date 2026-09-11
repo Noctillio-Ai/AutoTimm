@@ -1,6 +1,7 @@
 """Demonstrate reproducibility with default seeding."""
 
 import torch
+
 from autotimm import ImageClassifier, seed_everything
 
 

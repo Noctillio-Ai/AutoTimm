@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import torch
 import torch.nn.functional as F
-import torchvision.ops as ops
+from torchvision import ops
 
 
 def compute_targets_per_level(

@@ -5,6 +5,7 @@ using AutoTimm's built-in seeding capabilities.
 """
 
 import torch
+
 from autotimm import (
     AutoTrainer,
     ImageClassifier,

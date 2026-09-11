@@ -5,6 +5,7 @@ The exported model can be loaded and used in C++ applications without Python.
 """
 
 import torch
+
 from autotimm import ImageClassifier, export_to_torchscript
 
 

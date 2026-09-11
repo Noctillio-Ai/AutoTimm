@@ -1,12 +1,11 @@
 """Heatmap visualization utilities."""
 
-from typing import Optional, List, Tuple, Union
-import numpy as np
+import cv2
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import cm
 from matplotlib.figure import Figure
 from PIL import Image
-import cv2
 
 
 def apply_colormap(
@@ -53,7 +52,7 @@ def apply_colormap(
 
 
 def overlay_heatmap(
-    image: Union[np.ndarray, Image.Image],
+    image: np.ndarray | Image.Image,
     heatmap: np.ndarray,
     alpha: float = 0.4,
     colormap: str = "viridis",
@@ -113,13 +112,13 @@ def overlay_heatmap(
 
 
 def create_comparison_figure(
-    image: Union[np.ndarray, Image.Image],
-    heatmaps: List[np.ndarray],
-    titles: List[str],
+    image: np.ndarray | Image.Image,
+    heatmaps: list[np.ndarray],
+    titles: list[str],
     layout: str = "grid",
     colormap: str = "viridis",
     alpha: float = 0.4,
-    figsize: Optional[Tuple[int, int]] = None,
+    figsize: tuple[int, int] | None = None,
     dpi: int = 100,
 ) -> Figure:
     """
@@ -204,7 +203,7 @@ def create_comparison_figure(
 
 
 def save_heatmap(
-    image: Union[np.ndarray, Image.Image],
+    image: np.ndarray | Image.Image,
     heatmap: np.ndarray,
     save_path: str,
     colormap: str = "viridis",

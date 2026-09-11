@@ -143,7 +143,7 @@ def main():
     print("Option 1: RT-DETR with ResNet-50 Backbone")
     print("=" * 60)
 
-    model_r50 = RTDetrModule(  # noqa: F841
+    model_r50 = RTDetrModule(
         model_name="PekingU/rtdetr_r50vd",
         num_classes=80,
         lr=1e-4,
@@ -162,7 +162,7 @@ def main():
     print("Option 2: RT-DETR with ResNet-101 Backbone")
     print("=" * 60)
 
-    model_r101 = RTDetrModule(  # noqa: F841
+    model_r101 = RTDetrModule(
         model_name="PekingU/rtdetr_r101vd",
         num_classes=80,
         lr=1e-4,

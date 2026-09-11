@@ -14,23 +14,22 @@ from __future__ import annotations
 import pytorch_lightning as pl
 from pytorch_lightning.cli import LightningCLI
 
-from autotimm.training.trainer import AutoTrainer
-
-# Import task classes so LightningCLI can discover them as subclasses
-from autotimm.tasks.classification import ImageClassifier  # noqa: F401
-from autotimm.tasks.object_detection import ObjectDetector  # noqa: F401
-from autotimm.tasks.semantic_segmentation import SemanticSegmentor  # noqa: F401
-from autotimm.tasks.instance_segmentation import InstanceSegmentor  # noqa: F401
-from autotimm.tasks.yolox_detector import YOLOXDetector  # noqa: F401
-
 # Import data module classes so LightningCLI can discover them as subclasses
 from autotimm.data.datamodule import ImageDataModule  # noqa: F401
 from autotimm.data.detection_datamodule import DetectionDataModule  # noqa: F401
-from autotimm.data.segmentation_datamodule import SegmentationDataModule  # noqa: F401
 from autotimm.data.instance_datamodule import (  # noqa: F401
     InstanceSegmentationDataModule,
 )
 from autotimm.data.multilabel_datamodule import MultiLabelImageDataModule  # noqa: F401
+from autotimm.data.segmentation_datamodule import SegmentationDataModule  # noqa: F401
+
+# Import task classes so LightningCLI can discover them as subclasses
+from autotimm.tasks.classification import ImageClassifier  # noqa: F401
+from autotimm.tasks.instance_segmentation import InstanceSegmentor  # noqa: F401
+from autotimm.tasks.object_detection import ObjectDetector  # noqa: F401
+from autotimm.tasks.semantic_segmentation import SemanticSegmentor  # noqa: F401
+from autotimm.tasks.yolox_detector import YOLOXDetector  # noqa: F401
+from autotimm.training.trainer import AutoTrainer
 
 
 class AutoTimmCLI(LightningCLI):

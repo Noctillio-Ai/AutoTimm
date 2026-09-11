@@ -1,24 +1,23 @@
 """Detection-specific interpretation adapters."""
 
-from typing import Optional, Union, List, Dict, Tuple
-import torch
-import numpy as np
-from PIL import Image
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+import numpy as np
+import torch
+from matplotlib import patches
+from PIL import Image
 
 
 def explain_detection(
     model: torch.nn.Module,
-    image: Union[str, Image.Image, np.ndarray, torch.Tensor],
+    image: str | Image.Image | np.ndarray | torch.Tensor,
     method: str = "gradcam",
     detection_threshold: float = 0.5,
-    bbox: Optional[Tuple[int, int, int, int]] = None,
-    target_layer: Optional[Union[str, torch.nn.Module]] = None,
+    bbox: tuple[int, int, int, int] | None = None,
+    target_layer: str | torch.nn.Module | None = None,
     colormap: str = "viridis",
     alpha: float = 0.4,
-    save_path: Optional[str] = None,
-) -> Dict:
+    save_path: str | None = None,
+) -> dict:
     """
     Explain object detection predictions.
 
@@ -147,9 +146,9 @@ def explain_detection(
 
 
 def _parse_detections(
-    detections_output: Union[torch.Tensor, Dict, List],
+    detections_output: torch.Tensor | dict | list,
     threshold: float,
-) -> List[Dict]:
+) -> list[dict]:
     """Parse detection output to standard format."""
     parsed = []
 
@@ -203,9 +202,9 @@ def _parse_detections(
 
 
 def _find_closest_detection(
-    detections: List[Dict],
-    target_bbox: Tuple[int, int, int, int],
-) -> Dict:
+    detections: list[dict],
+    target_bbox: tuple[int, int, int, int],
+) -> dict:
     """Find detection closest to target bbox."""
     min_dist = float("inf")
     closest = detections[0] if detections else None
@@ -232,7 +231,7 @@ def _find_closest_detection(
 def _mask_heatmap_to_bbox(
     heatmap: np.ndarray,
     bbox: np.ndarray,
-    image_shape: Tuple[int, int],
+    image_shape: tuple[int, int],
 ) -> np.ndarray:
     """Mask heatmap to bbox region (optional soft masking)."""
     # Resize heatmap to image size
@@ -264,8 +263,8 @@ def _mask_heatmap_to_bbox(
 
 def _visualize_detection_explanations(
     image: np.ndarray,
-    detections: List[Dict],
-    heatmaps: List[np.ndarray],
+    detections: list[dict],
+    heatmaps: list[np.ndarray],
     colormap: str = "viridis",
     alpha: float = 0.4,
 ) -> np.ndarray:
@@ -276,9 +275,7 @@ def _visualize_detection_explanations(
     fig, axes = plt.subplots(
         1, min(4, len(detections) + 1), figsize=(4 * min(4, len(detections) + 1), 4)
     )
-    if len(detections) == 0:
-        axes = [axes]
-    elif not isinstance(axes, np.ndarray):
+    if len(detections) == 0 or not isinstance(axes, np.ndarray):
         axes = [axes]
 
     # Original image with all bboxes
@@ -303,7 +300,7 @@ def _visualize_detection_explanations(
             f"{det.get('class_name', det['class_id'])}: {det['confidence']:.2f}",
             color="red",
             fontsize=10,
-            bbox=dict(facecolor="white", alpha=0.7),
+            bbox={"facecolor": "white", "alpha": 0.7},
         )
 
     # Individual detection explanations

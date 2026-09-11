@@ -2,11 +2,11 @@
 
 from autotimm.heads._heads import (
     ASPP,
+    FPN,
     ClassificationHead,
     DeepLabV3PlusHead,
     DetectionHead,
     FCNHead,
-    FPN,
     MaskHead,
     ScaleModule,
     YOLOXHead,
@@ -14,11 +14,11 @@ from autotimm.heads._heads import (
 
 __all__ = [
     "ASPP",
+    "FPN",
     "ClassificationHead",
     "DeepLabV3PlusHead",
     "DetectionHead",
     "FCNHead",
-    "FPN",
     "MaskHead",
     "ScaleModule",
     "YOLOXHead",
