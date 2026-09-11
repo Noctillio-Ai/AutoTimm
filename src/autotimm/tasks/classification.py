@@ -729,24 +729,29 @@ class ImageClassifier(PreprocessingMixin, pl.LightningModule):
         if optimizer_name in torch_optimizers:
             return torch_optimizers[optimizer_name](params, **opt_kwargs)
 
-        # Try timm optimizers
+        # Try timm optimizers (looked up lazily so a missing class only
+        # affects the optimizer that needs it)
         try:
             import timm.optim as timm_optim
 
-            timm_optimizers = {
-                "adamp": timm_optim.AdamP,
-                "sgdp": timm_optim.SGDP,
-                "adabelief": timm_optim.AdaBelief,
-                "radam": timm_optim.RAdam,
-                "adahessian": timm_optim.Adahessian,
-                "lamb": timm_optim.Lamb,
-                "lars": timm_optim.Lars,
-                "madgrad": timm_optim.MADGRAD,
-                "novograd": timm_optim.NovGrad,
+            timm_optimizer_names = {
+                "adamp": "AdamP",
+                "sgdp": "SGDP",
+                "adabelief": "AdaBelief",
+                "radam": "RAdam",
+                "adahessian": "Adahessian",
+                "lamb": "Lamb",
+                "lars": "Lars",
+                "madgrad": "MADGRAD",
+                "novograd": "NvNovoGrad",
             }
 
-            if optimizer_name in timm_optimizers:
-                return timm_optimizers[optimizer_name](params, **opt_kwargs)
+            if optimizer_name in timm_optimizer_names:
+                optimizer_cls = getattr(
+                    timm_optim, timm_optimizer_names[optimizer_name], None
+                )
+                if optimizer_cls is not None:
+                    return optimizer_cls(params, **opt_kwargs)
         except ImportError:
             pass
 
@@ -834,6 +839,7 @@ class ImageClassifier(PreprocessingMixin, pl.LightningModule):
                     )
                     interval = "epoch"
                 elif scheduler_name == "plateau":
+                    monitor = sched_kwargs.pop("monitor", "val/loss")
                     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                         optimizer,
                         mode=sched_kwargs.pop("mode", "min"),
@@ -844,7 +850,7 @@ class ImageClassifier(PreprocessingMixin, pl.LightningModule):
                     interval = "epoch"
                     return {
                         "scheduler": scheduler,
-                        "monitor": sched_kwargs.pop("monitor", "val/loss"),
+                        "monitor": monitor,
                         "interval": interval,
                         "frequency": frequency,
                     }
@@ -862,6 +868,24 @@ class ImageClassifier(PreprocessingMixin, pl.LightningModule):
             "interval": interval,
             "frequency": frequency,
         }
+
+    def lr_scheduler_step(self, scheduler, metric) -> None:
+        """Step the LR scheduler, supporting timm schedulers.
+
+        timm schedulers require ``step(epoch)`` rather than Lightning's
+        plain ``step()`` call, so they crash without this override.
+        """
+        try:
+            from timm.scheduler.scheduler import Scheduler as TimmScheduler
+        except ImportError:
+            TimmScheduler = ()
+
+        if TimmScheduler and isinstance(scheduler, TimmScheduler):
+            scheduler.step(epoch=self.current_epoch + 1)
+        elif metric is None:
+            scheduler.step()
+        else:
+            scheduler.step(metric)
 
     def _import_class(self, class_path: str):
         """Import a class from a fully qualified path."""

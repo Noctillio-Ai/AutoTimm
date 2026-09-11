@@ -660,8 +660,14 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
 
         params = list(self.parameters())
 
-        # Create optimizer (YOLOX official uses SGD with momentum)
-        if self._optimizer.lower() == "sgd":
+        # Dict config: {"class": "path.to.Optimizer", "params": {...}}
+        if isinstance(self._optimizer, dict):
+            opt_kwargs = {"lr": self._lr, "weight_decay": self._weight_decay}
+            opt_kwargs.update(self._optimizer_kwargs)
+            opt_kwargs.update(self._optimizer.get("params", {}))
+            optimizer_cls = self._import_class(self._optimizer["class"])
+            optimizer = optimizer_cls(params, **opt_kwargs)
+        elif self._optimizer.lower() == "sgd":
             optimizer = torch.optim.SGD(
                 params,
                 lr=self._lr,
@@ -690,7 +696,12 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
             return {"optimizer": optimizer}
 
         # Create scheduler
-        if self._scheduler.lower() == "yolox":
+        # Dict config: {"class": "path.to.Scheduler", "params": {...}}
+        if isinstance(self._scheduler, dict):
+            sched_kwargs = dict(self._scheduler.get("params", {}))
+            scheduler_cls = self._import_class(self._scheduler["class"])
+            scheduler = scheduler_cls(optimizer, **sched_kwargs)
+        elif self._scheduler.lower() == "yolox":
             # Official YOLOX scheduler with warmup
             scheduler = YOLOXLRScheduler(
                 optimizer,
@@ -735,3 +746,14 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
                 "frequency": 1,
             },
         }
+
+    def _import_class(self, class_path: str):
+        """Import a class from a fully qualified path."""
+        import importlib
+
+        if "." not in class_path:
+            raise ValueError(f"Class path must be fully qualified, got: {class_path}")
+
+        module_path, class_name = class_path.rsplit(".", 1)
+        module = importlib.import_module(module_path)
+        return getattr(module, class_name)

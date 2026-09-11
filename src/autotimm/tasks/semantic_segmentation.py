@@ -633,22 +633,27 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         if optimizer_name in torch_optimizers:
             return torch_optimizers[optimizer_name](params, **opt_kwargs)
 
-        # Try timm optimizers
+        # Try timm optimizers (looked up lazily so a missing class only
+        # affects the optimizer that needs it)
         try:
             import timm.optim as timm_optim
 
-            timm_optimizers = {
-                "adamp": timm_optim.AdamP,
-                "sgdp": timm_optim.SGDP,
-                "adabelief": timm_optim.AdaBelief,
-                "radam": timm_optim.RAdam,
-                "lamb": timm_optim.Lamb,
-                "madgrad": timm_optim.MADGRAD,
-                "novograd": timm_optim.NovGrad,
+            timm_optimizer_names = {
+                "adamp": "AdamP",
+                "sgdp": "SGDP",
+                "adabelief": "AdaBelief",
+                "radam": "RAdam",
+                "lamb": "Lamb",
+                "madgrad": "MADGRAD",
+                "novograd": "NvNovoGrad",
             }
 
-            if optimizer_name in timm_optimizers:
-                return timm_optimizers[optimizer_name](params, **opt_kwargs)
+            if optimizer_name in timm_optimizer_names:
+                optimizer_cls = getattr(
+                    timm_optim, timm_optimizer_names[optimizer_name], None
+                )
+                if optimizer_cls is not None:
+                    return optimizer_cls(params, **opt_kwargs)
         except ImportError:
             pass
 
@@ -730,6 +735,7 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
                 **sched_kwargs,
             )
         elif scheduler_name == "plateau":
+            monitor = sched_kwargs.pop("monitor", "val/loss")
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 optimizer,
                 mode=sched_kwargs.pop("mode", "min"),
@@ -740,7 +746,7 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
             interval = "epoch"
             return {
                 "scheduler": scheduler,
-                "monitor": sched_kwargs.pop("monitor", "val/loss"),
+                "monitor": monitor,
                 "interval": interval,
                 "frequency": frequency,
             }
