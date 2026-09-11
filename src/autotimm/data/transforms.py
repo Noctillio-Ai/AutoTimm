@@ -78,6 +78,18 @@ def trivialaugment_train_transforms(image_size: int = 224) -> transforms.Compose
     )
 
 
+def light_train_transforms(image_size: int = 224) -> transforms.Compose:
+    """Light training transforms: random crop and flip only."""
+    return transforms.Compose(
+        [
+            transforms.RandomResizedCrop(image_size),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+        ]
+    )
+
+
 def default_eval_transforms(image_size: int = 224) -> transforms.Compose:
     """Standard evaluation transforms: resize, center crop, normalize."""
     resize_size = int(image_size * 256 / 224)
@@ -96,6 +108,7 @@ TORCHVISION_PRESETS: dict[str, callable] = {
     "autoaugment": autoaugment_train_transforms,
     "randaugment": randaugment_train_transforms,
     "trivialaugment": trivialaugment_train_transforms,
+    "light": light_train_transforms,
 }
 
 
@@ -168,6 +181,21 @@ def albu_strong_train_transforms(image_size: int = 224):
     )
 
 
+def albu_light_train_transforms(image_size: int = 224):
+    """Light albumentations training transforms: random crop and flip only."""
+    A = _require_albumentations()
+    from albumentations.pytorch import ToTensorV2
+
+    return A.Compose(
+        [
+            A.RandomResizedCrop(size=(image_size, image_size)),
+            A.HorizontalFlip(p=0.5),
+            A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+            ToTensorV2(),
+        ]
+    )
+
+
 def albu_default_eval_transforms(image_size: int = 224):
     """Default albumentations evaluation transforms with OpenCV backend."""
     A = _require_albumentations()
@@ -187,6 +215,7 @@ def albu_default_eval_transforms(image_size: int = 224):
 ALBUMENTATIONS_PRESETS: dict[str, callable] = {
     "default": albu_default_train_transforms,
     "strong": albu_strong_train_transforms,
+    "light": albu_light_train_transforms,
 }
 
 
@@ -199,8 +228,9 @@ def get_train_transforms(
 
     Parameters:
         preset: Preset name. For ``torchvision``: ``"default"``,
-            ``"autoaugment"``, ``"randaugment"``, ``"trivialaugment"``.
-            For ``albumentations``: ``"default"``, ``"strong"``.
+            ``"autoaugment"``, ``"randaugment"``, ``"trivialaugment"``,
+            ``"light"``. For ``albumentations``: ``"default"``,
+            ``"strong"``, ``"light"``.
         backend: ``"torchvision"`` or ``"albumentations"``.
         **kwargs: Forwarded to the preset function (e.g. ``image_size``).
 
