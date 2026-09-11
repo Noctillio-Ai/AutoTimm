@@ -11,7 +11,6 @@ import torch
 import torch.nn as nn
 
 from autotimm import (
-    AutoTrainer,
     ImageClassifier,
     ObjectDetector,
     SemanticSegmentor,
@@ -67,14 +66,14 @@ def example_2_use_registry_losses_for_classification():
         loss_fn="cross_entropy",  # Use from registry
         compile_model=False,
     )
-    print(f"✓ Created ImageClassifier with 'cross_entropy' loss")
+    print("✓ Created ImageClassifier with 'cross_entropy' loss")
     print(f"  Loss type: {type(model.criterion)}")
 
     # Option 2: Create loss from registry and pass to model
     print("\n--- Creating loss from registry ---")
     registry = get_loss_registry()
     bce_loss = registry.get_loss("bce_with_logits")
-    print(f"✓ Created BCEWithLogitsLoss from registry")
+    print("✓ Created BCEWithLogitsLoss from registry")
     print(f"  Loss type: {type(bce_loss)}")
 
     model_multilabel = ImageClassifier(
@@ -84,7 +83,7 @@ def example_2_use_registry_losses_for_classification():
         loss_fn=bce_loss,  # Pass instance
         compile_model=False,
     )
-    print(f"✓ Created multi-label classifier with BCEWithLogitsLoss")
+    print("✓ Created multi-label classifier with BCEWithLogitsLoss")
 
 
 def example_3_use_registry_losses_for_segmentation():
@@ -124,7 +123,7 @@ def example_4_use_registry_losses_for_detection():
         reg_loss_fn="giou",  # Regression loss
         compile_model=False,
     )
-    print(f"✓ Created ObjectDetector with registry losses")
+    print("✓ Created ObjectDetector with registry losses")
     print(f"  Classification loss: {type(model.focal_loss)}")
     print(f"  Regression loss: {type(model.giou_loss)}")
 
@@ -153,7 +152,7 @@ def example_5_custom_loss_function():
             self.beta = beta
             self.gamma = gamma
             self.ignore_index = ignore_index
-            print(f"  Initialized CustomFocalTverskyLoss with:")
+            print("  Initialized CustomFocalTverskyLoss with:")
             print(f"    alpha={alpha}, beta={beta}, gamma={gamma}")
 
         def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
@@ -187,7 +186,7 @@ def example_5_custom_loss_function():
         loss_fn=custom_loss,
         compile_model=False,
     )
-    print(f"✓ Created SemanticSegmentor with custom loss")
+    print("✓ Created SemanticSegmentor with custom loss")
 
 
 def example_6_backward_compatibility():
@@ -206,7 +205,7 @@ def example_6_backward_compatibility():
         ce_weight=1.0,
         compile_model=False,
     )
-    print(f"✓ Old way still works: loss_type='combined'")
+    print("✓ Old way still works: loss_type='combined'")
     print(f"  Loss type: {type(model_old.criterion)}")
 
     # New way (preferred)
@@ -219,7 +218,7 @@ def example_6_backward_compatibility():
         ce_weight=1.0,
         compile_model=False,
     )
-    print(f"✓ New way: loss_fn='combined_segmentation'")
+    print("✓ New way: loss_fn='combined_segmentation'")
     print(f"  Loss type: {type(model_new.criterion)}")
 
 
@@ -253,7 +252,7 @@ def example_7_training_with_custom_loss():
         loss_fn=custom_loss,
         compile_model=False,
     )
-    print(f"✓ Created model with custom weighted CrossEntropy")
+    print("✓ Created model with custom weighted CrossEntropy")
     print(f"  Class weights: {class_weights.tolist()}")
 
     # This model is now ready for training with AutoTrainer

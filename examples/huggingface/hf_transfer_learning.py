@@ -31,7 +31,6 @@ def explore_pretraining_impact():
     print("Impact of Pretraining Dataset on Transfer Learning")
     print("=" * 80)
 
-
     print("\nPretraining Dataset Characteristics:\n")
     print(f"{'Dataset':<30} {'Images':>15} {'Classes':>10} {'Best For'}")
     print("-" * 80)

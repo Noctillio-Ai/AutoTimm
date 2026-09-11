@@ -19,7 +19,7 @@ def test_trainer_default_seeding():
     )
 
     # Check that deterministic mode is enabled
-    print(f"\nDeterministic settings after trainer creation:")
+    print("\nDeterministic settings after trainer creation:")
     print(f"  cudnn.deterministic: {torch.backends.cudnn.deterministic}")
     print(f"  cudnn.benchmark: {torch.backends.cudnn.benchmark}")
 

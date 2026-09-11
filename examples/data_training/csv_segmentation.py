@@ -54,13 +54,9 @@ def create_demo_dataset(
 
                 # Create dummy mask with random class assignments
                 mask = np.random.randint(0, num_classes, (128, 128), dtype=np.uint8)
-                Image.fromarray(mask, mode="L").save(
-                    os.path.join(mask_dir, mask_name)
-                )
+                Image.fromarray(mask, mode="L").save(os.path.join(mask_dir, mask_name))
 
-                writer.writerow(
-                    [f"images/{img_name}", f"masks/{mask_name}"]
-                )
+                writer.writerow([f"images/{img_name}", f"masks/{mask_name}"])
 
     return (
         os.path.join(root, "train.csv"),
@@ -81,9 +77,7 @@ def main():
     #   ...
     tmpdir = tempfile.mkdtemp()
     num_classes = 5
-    train_csv, val_csv, data_dir = create_demo_dataset(
-        tmpdir, num_classes=num_classes
-    )
+    train_csv, val_csv, data_dir = create_demo_dataset(tmpdir, num_classes=num_classes)
 
     data = SegmentationDataModule(
         data_dir=data_dir,

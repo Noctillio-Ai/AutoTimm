@@ -8,7 +8,6 @@ import torch
 from autotimm import (
     AutoTrainer,
     ImageClassifier,
-    ImageDataModule,
     MetricConfig,
     seed_everything,
 )
@@ -99,13 +98,13 @@ def example_4_disable_seeding():
     model = ImageClassifier(
         backbone="resnet18",
         num_classes=10,
-        seed=None,            # Disable seeding
+        seed=None,  # Disable seeding
         deterministic=False,  # Must be False when seed=None
     )
 
     trainer = AutoTrainer(
         max_epochs=10,
-        seed=None,            # Disable seeding
+        seed=None,  # Disable seeding
         deterministic=False,  # Must be False when seed=None
     )
 
@@ -140,7 +139,7 @@ def example_5_manual_seeding():
     model = ImageClassifier(
         backbone="resnet18",
         num_classes=10,
-        seed=None,            # Don't seed again in model
+        seed=None,  # Don't seed again in model
         deterministic=False,  # Already set by manual seed_everything
     )
     print("✓ Model created with manual seed")

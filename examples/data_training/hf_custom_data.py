@@ -15,8 +15,6 @@ Usage:
 from __future__ import annotations
 
 
-
-
 def example_1_custom_folder_dataset():
     """Example 1: Loading custom folder-based datasets."""
     print("=" * 80)

@@ -93,9 +93,7 @@ def train_with_hf_hub_model():
 
     # Print model info
     print(f"Total parameters: {at.count_parameters(model):,}")
-    print(
-        f"Trainable parameters: {at.count_parameters(model, trainable_only=True):,}"
-    )
+    print(f"Trainable parameters: {at.count_parameters(model, trainable_only=True):,}")
 
     # Trainer setup
     trainer = AutoTrainer(
@@ -124,16 +122,12 @@ def compare_timm_vs_hf_hub():
     print("\n1. Creating standard timm model (resnet18)...")
     timm_model = at.create_backbone("resnet18")
     print(f"   Features: {timm_model.num_features}")
-    print(
-        f"   Parameters: {at.count_parameters(timm_model, trainable_only=False):,}"
-    )
+    print(f"   Parameters: {at.count_parameters(timm_model, trainable_only=False):,}")
 
     print("\n2. Creating HF Hub model (hf-hub:timm/resnet18.a1_in1k)...")
     hf_model = at.create_backbone("hf-hub:timm/resnet18.a1_in1k")
     print(f"   Features: {hf_model.num_features}")
-    print(
-        f"   Parameters: {at.count_parameters(hf_model, trainable_only=False):,}"
-    )
+    print(f"   Parameters: {at.count_parameters(hf_model, trainable_only=False):,}")
 
     print("\nBoth models have the same architecture and can be used interchangeably!")
     print("HF Hub models provide:")

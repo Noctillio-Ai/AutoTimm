@@ -144,8 +144,10 @@ def test_deterministic_mode():
     expected_deterministic = True
     expected_benchmark = False
 
-    if (torch.backends.cudnn.deterministic == expected_deterministic and
-        torch.backends.cudnn.benchmark == expected_benchmark):
+    if (
+        torch.backends.cudnn.deterministic == expected_deterministic
+        and torch.backends.cudnn.benchmark == expected_benchmark
+    ):
         print("\n✓ Deterministic mode enabled by default")
     else:
         print("\n✗ Deterministic mode not set correctly")
@@ -201,7 +203,7 @@ def test_no_seeding():
     model = ImageClassifier(
         backbone="resnet18",
         num_classes=10,
-        seed=None,            # Disable seeding completely
+        seed=None,  # Disable seeding completely
         deterministic=False,  # Avoid warning when seed=None
         compile_model=False,
     )

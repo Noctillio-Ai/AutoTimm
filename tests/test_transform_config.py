@@ -27,8 +27,10 @@ class TestTransformConfig:
         assert config.use_timm_config is True
         assert config.mean is None
         assert config.std is None
-        assert config.interpolation == "bicubic"
-        assert config.crop_pct == 0.875
+        # None means "use the model's pretrained value" (falls back to
+        # bicubic / 0.875 when no model config is available)
+        assert config.interpolation is None
+        assert config.crop_pct is None
 
     def test_custom_values(self):
         """Test custom configuration values."""

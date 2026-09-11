@@ -106,9 +106,9 @@ class TestDeepLabV3PlusHead:
         # Only check gradients for features that are actually used by DeepLabV3+
         # DeepLabV3+ uses features[0] (low-level) and features[-1] (high-level)
         assert features[0].grad is not None, "Low-level features should have gradients"
-        assert features[-1].grad is not None, (
-            "High-level features should have gradients"
-        )
+        assert (
+            features[-1].grad is not None
+        ), "High-level features should have gradients"
 
 
 class TestFCNHead:

@@ -40,9 +40,7 @@ def create_demo_dataset(root: str, num_images: int = 50) -> tuple[str, str, str]
         csv_path = os.path.join(root, f"{split}.csv")
         with open(csv_path, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(
-                ["image_path", "x_min", "y_min", "x_max", "y_max", "label"]
-            )
+            writer.writerow(["image_path", "x_min", "y_min", "x_max", "y_max", "label"])
             for i in range(n):
                 fname = f"{split}_{i:04d}.jpg"
                 Image.new("RGB", (640, 480), color=(i * 17 % 256, 80, 120)).save(
