@@ -129,7 +129,6 @@ def train_instance_segmentor_resnet():
         backbone="hf-hub:timm/resnet50.a1_in1k",
         num_classes=80,
         fpn_channels=256,
-        mask_head_channels=256,
         mask_loss_weight=1.0,
         metrics=metrics,
         lr=1e-3,
@@ -187,7 +186,6 @@ def train_instance_segmentor_resnext():
         backbone="hf-hub:timm/resnext50_32x4d.a1_in1k",
         num_classes=80,
         fpn_channels=256,
-        mask_head_channels=256,
         mask_loss_weight=1.0,
         metrics=metrics,
         lr=1e-3,
@@ -246,7 +244,6 @@ def train_modern_instance_segmentor():
         backbone="hf-hub:timm/convnext_tiny.fb_in22k",
         num_classes=80,
         fpn_channels=256,
-        mask_head_channels=256,
         mask_loss_weight=1.0,
         metrics=metrics,
         lr=5e-4,  # Lower LR for modern architecture

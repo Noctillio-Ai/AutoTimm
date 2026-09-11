@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import pickle
 import random
 from typing import Any
 
@@ -89,7 +90,7 @@ def safe_torch_load(checkpoint_path: str, map_location: Any = "cpu") -> dict:
     """
     try:
         return torch.load(checkpoint_path, map_location=map_location, weights_only=True)
-    except Exception:
+    except pickle.UnpicklingError:
         from loguru import logger
 
         logger.warning(

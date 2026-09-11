@@ -145,11 +145,21 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
                 stacklevel=2,
             )
 
-        # Normalize backbone to a plain string so it survives checkpoint
-        # round-trip (FeatureBackboneConfig is not serialised by save_hyperparameters).
-        backbone = (
-            backbone.model_name if hasattr(backbone, "model_name") else str(backbone)
-        )
+        # Keep the full config for backbone creation, but normalize the
+        # `backbone` local to a plain string so save_hyperparameters() stores
+        # a serializable value for checkpoint round-trips. The FCOS/YOLOX
+        # architecture needs exactly 3 feature levels (C3, C4, C5), so
+        # out_indices is always (2, 3, 4).
+        if isinstance(backbone, FeatureBackboneConfig):
+            import dataclasses
+
+            backbone_cfg = dataclasses.replace(backbone, out_indices=(2, 3, 4))
+            backbone = backbone.model_name
+        else:
+            backbone = str(backbone)
+            backbone_cfg = FeatureBackboneConfig(
+                model_name=backbone, out_indices=(2, 3, 4)
+            )
 
         super().__init__()
         self.save_hyperparameters(
@@ -203,27 +213,9 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
             self.regress_ranges = regress_ranges
 
         # Build model
-        # For object detection, we typically use 3 backbone features (C3, C4, C5)
+        # For object detection, we use 3 backbone features (C3, C4, C5)
         # which combined with 2 extra FPN levels gives us P3-P7 (5 levels total)
-        if isinstance(backbone, str):
-            from autotimm.core.backbone import FeatureBackboneConfig
-
-            backbone = FeatureBackboneConfig(model_name=backbone, out_indices=(2, 3, 4))
-        elif not hasattr(backbone, "out_indices"):
-            # If it's a FeatureBackboneConfig without out_indices set, use (2, 3, 4)
-            if hasattr(backbone, "model_name"):
-                from autotimm.core.backbone import FeatureBackboneConfig
-
-                backbone = FeatureBackboneConfig(
-                    model_name=backbone.model_name,
-                    pretrained=getattr(backbone, "pretrained", True),
-                    out_indices=(2, 3, 4),
-                    drop_rate=getattr(backbone, "drop_rate", 0.0),
-                    drop_path_rate=getattr(backbone, "drop_path_rate", 0.0),
-                    extra_kwargs=getattr(backbone, "extra_kwargs", {}),
-                )
-
-        self.backbone = create_feature_backbone(backbone)
+        self.backbone = create_feature_backbone(backbone_cfg)
         in_channels = get_feature_channels(self.backbone)
 
         self.fpn = FPN(
@@ -277,7 +269,10 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
                 alpha=focal_alpha, gamma=focal_gamma, reduction="sum"
             )
 
-        # Setup regression loss
+        # Setup regression loss. When the user provides one, it is used on
+        # xyxy boxes (relative to each grid point); the default is the
+        # -log(IoU) loss on LTRB distances inside compute_fcos_detection_loss.
+        self._custom_reg_loss = reg_loss_fn is not None
         if reg_loss_fn is not None:
             if isinstance(reg_loss_fn, str):
                 registry = get_loss_registry()
@@ -289,7 +284,8 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
                     f"reg_loss_fn must be a string or nn.Module instance, got {type(reg_loss_fn)}"
                 )
         else:
-            # Default: GIoULoss
+            # Kept for API compatibility; the FCOS loss uses its built-in
+            # IoU loss unless a custom reg_loss_fn was provided.
             self.giou_loss = GIoULoss(reduction="sum")
 
         # Initialize metrics
@@ -445,6 +441,7 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
             self.regress_ranges,
             self.focal_loss,
             self.num_classes,
+            reg_loss_fn=self.giou_loss if self._custom_reg_loss else None,
         )
 
         cls_loss = self.cls_loss_weight * losses["cls_loss"]

@@ -96,7 +96,6 @@ def train_deeplabv3_with_resnet():
         image_size=512,
         batch_size=4,
         num_workers=4,
-        train_split=0.8,
     )
 
     # Metrics

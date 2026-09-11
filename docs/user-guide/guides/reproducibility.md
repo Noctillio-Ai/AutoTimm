@@ -277,7 +277,6 @@ data = ImageDataModule(
     data_dir="./data",
     batch_size=32,
     num_workers=4,
-    seed=SEED,  # Seed for data splitting
 )
 
 # 3. Create reproducible model

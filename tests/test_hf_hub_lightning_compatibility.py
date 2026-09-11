@@ -482,7 +482,9 @@ class TestHFHubHyperparameters:
                 metrics=metrics,
             )
 
-            assert loaded_model.hparams["backbone_name"] == "hf-hub:timm/resnet18.a1_in1k"
+            assert (
+                loaded_model.hparams["backbone_name"] == "hf-hub:timm/resnet18.a1_in1k"
+            )
             assert loaded_model.hparams["lr"] == 2e-3
             assert loaded_model.hparams["weight_decay"] == 1e-5
 

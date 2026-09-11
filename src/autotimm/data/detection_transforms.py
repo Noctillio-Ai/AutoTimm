@@ -45,7 +45,7 @@ def detection_train_transforms(
                 min_height=image_size,
                 min_width=image_size,
                 border_mode=0,
-                value=(114, 114, 114),
+                fill=(114, 114, 114),
             ),
             A.HorizontalFlip(p=0.5),
             A.ColorJitter(
@@ -101,7 +101,7 @@ def detection_strong_train_transforms(
                 min_height=image_size,
                 min_width=image_size,
                 border_mode=0,
-                value=(114, 114, 114),
+                fill=(114, 114, 114),
             ),
             A.HorizontalFlip(p=0.5),
             A.Affine(
@@ -158,7 +158,7 @@ def detection_eval_transforms(image_size: int = 640):
                 min_height=image_size,
                 min_width=image_size,
                 border_mode=0,
-                value=(114, 114, 114),
+                fill=(114, 114, 114),
             ),
             A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
             ToTensorV2(),

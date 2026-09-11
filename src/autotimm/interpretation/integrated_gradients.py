@@ -367,6 +367,12 @@ class SmoothGrad:
         noise_level: float = 0.15,
         num_samples: int = 50,
     ):
+        if not hasattr(base_explainer, "explain"):
+            # A bare model was passed instead of an explainer — wrap it in
+            # GradCAM so SmoothGrad(model) works like GradCAM(model) does.
+            from autotimm.interpretation.gradcam import GradCAM
+
+            base_explainer = GradCAM(base_explainer)
         self.base_explainer = base_explainer
         self.noise_level = noise_level
         self.num_samples = num_samples

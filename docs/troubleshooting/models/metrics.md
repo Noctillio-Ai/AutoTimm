@@ -45,16 +45,15 @@ def debug_predictions(model, batch):
 # Common issue: bbox format mismatch
 from autotimm import ObjectDetector
 
-# Specify bbox format explicitly
 model = ObjectDetector(
     backbone="resnet50",
     num_classes=10,
-    bbox_format="xyxy",  # Options: xyxy, xywh, cxcywh
 )
 
-# Verify annotation format
-# COCO format uses [x, y, width, height]
-# Model expects format specified in bbox_format parameter
+# Verify annotation format:
+# COCO annotation files use [x, y, width, height]; AutoTimm's datasets
+# convert to [x1, y1, x2, y2] internally, which is what the model
+# and torchmetrics' MeanAveragePrecision expect
 ```
 
 ## Related Issues

@@ -137,8 +137,7 @@ class LossRegistry:
         if resolved_name not in self._registry:
             available = self.list_losses()
             raise ValueError(
-                f"Loss '{name}' not found in registry. "
-                f"Available losses: {available}"
+                f"Loss '{name}' not found in registry. Available losses: {available}"
             )
 
         loss_class = self._registry[resolved_name]

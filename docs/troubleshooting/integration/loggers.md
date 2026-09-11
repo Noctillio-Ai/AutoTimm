@@ -12,22 +12,26 @@ import wandb
 wandb.login(key="your_api_key")
 
 # 2. Disable online sync for offline training
+from autotimm import AutoTrainer, LoggerConfig
+
 trainer = AutoTrainer(
     max_epochs=10,
-    logger="wandb",
-    logger_kwargs={
-        "project": "my-project",
-        "offline": True,  # Save logs locally
-    },
+    logger=[
+        LoggerConfig(
+            backend="wandb",
+            params={"project": "my-project", "offline": True},
+        )
+    ],
 )
 
 # 3. Resume run
 trainer = AutoTrainer(
-    logger_kwargs={
-        "project": "my-project",
-        "id": "run_id",
-        "resume": "must",
-    },
+    logger=[
+        LoggerConfig(
+            backend="wandb",
+            params={"project": "my-project", "id": "run_id", "resume": "must"},
+        )
+    ],
 )
 ```
 
@@ -35,12 +39,16 @@ trainer = AutoTrainer(
 
 ```python
 import autotimm as at  # recommended alias
-from autotimm import LoggingConfig
+from autotimm import LoggerConfig, LoggerManager
 
 # Specify custom log directory
-logging_config = LoggingConfig(
-    log_dir="./custom_logs",
-    log_hyperparameters=True,
+logger_manager = LoggerManager(
+    configs=[
+        LoggerConfig(
+            backend="tensorboard",
+            params={"save_dir": "./custom_logs", "name": "run_1"},
+        ),
+    ]
 )
 
 # View logs

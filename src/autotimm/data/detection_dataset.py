@@ -287,8 +287,13 @@ class CSVDetectionDataset(Dataset):
 
         orig_h, orig_w = image.shape[:2]
 
-        # Boxes are already in xyxy format
-        bboxes = [ann["bbox"] for ann in anns]
+        # CSV stores xyxy, but the transform pipelines declare COCO bbox
+        # format ([x, y, w, h]); convert before the transform and back after,
+        # mirroring COCODetectionDataset.
+        bboxes = [
+            [b[0], b[1], b[2] - b[0], b[3] - b[1]]
+            for b in (ann["bbox"] for ann in anns)
+        ]
         labels = [self._class_to_idx[ann["label"]] for ann in anns]
 
         if self.transform is not None:
@@ -297,8 +302,11 @@ class CSVDetectionDataset(Dataset):
             bboxes = transformed["bboxes"]
             labels = transformed["labels"]
 
-        if len(bboxes) > 0:
-            boxes = torch.tensor(bboxes, dtype=torch.float32)
+        # Convert bboxes from COCO [x, y, w, h] back to [x1, y1, x2, y2]
+        boxes_xyxy = [[x, y, x + w, y + h] for x, y, w, h in bboxes]
+
+        if len(boxes_xyxy) > 0:
+            boxes = torch.tensor(boxes_xyxy, dtype=torch.float32)
             labels = torch.tensor(labels, dtype=torch.int64)
         else:
             boxes = torch.zeros((0, 4), dtype=torch.float32)

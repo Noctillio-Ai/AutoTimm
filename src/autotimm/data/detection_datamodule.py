@@ -291,7 +291,11 @@ class DetectionDataModule(pl.LightningDataModule):
             **self._loader_kwargs(),
         )
 
-    def val_dataloader(self) -> DataLoader:
+    def val_dataloader(self) -> DataLoader | None:
+        # CSV mode without val_csv has no validation split; returning None
+        # lets Lightning skip the validation loop instead of crashing.
+        if self.val_dataset is None:
+            return None
         return DataLoader(
             self.val_dataset,
             shuffle=False,

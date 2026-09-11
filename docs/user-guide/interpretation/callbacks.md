@@ -53,7 +53,7 @@ callback = InterpretationCallback(
 ### Basic Usage
 
 ```python
-from autotimm import AutoTrainer, ImageClassifier, ImageDataModule
+from autotimm import AutoTrainer, ImageClassifier, LoggerConfig, ImageDataModule, LoggerConfig
 from autotimm.interpretation import InterpretationCallback
 from PIL import Image
 
@@ -70,13 +70,13 @@ interp_callback = InterpretationCallback(
 
 # Create model and trainer
 model = ImageClassifier(backbone="resnet50", num_classes=10)
-data = ImageDataModule(train_dir="data/train", val_dir="data/val")
+data = ImageDataModule(data_dir="./data")  # expects data/train and data/val
 
 # Train with automatic interpretation
 trainer = AutoTrainer(
     max_epochs=100,
     callbacks=[interp_callback],
-    logger="tensorboard",  # or "wandb", "mlflow"
+    logger=[LoggerConfig(backend="tensorboard", params={"save_dir": "logs"})],
 )
 
 trainer.fit(model, datamodule=data)
@@ -239,7 +239,7 @@ callback = FeatureMonitorCallback(
 ### Basic Usage
 
 ```python
-from autotimm import AutoTrainer, ImageClassifier
+from autotimm import AutoTrainer, ImageClassifier, LoggerConfig
 from autotimm.interpretation import FeatureMonitorCallback
 
 # Create callback
@@ -256,7 +256,7 @@ model = ImageClassifier(backbone="resnet50", num_classes=10)
 trainer = AutoTrainer(
     max_epochs=100,
     callbacks=[feature_callback],
-    logger="tensorboard",
+    logger=[LoggerConfig(backend="tensorboard", params={"save_dir": "logs"})],
 )
 
 trainer.fit(model, datamodule=data)
@@ -326,7 +326,7 @@ feature_callback = FeatureMonitorCallback(
 Use both callbacks together for comprehensive monitoring:
 
 ```python
-from autotimm import AutoTrainer, ImageClassifier
+from autotimm import AutoTrainer, ImageClassifier, LoggerConfig
 from autotimm.interpretation import InterpretationCallback, FeatureMonitorCallback
 
 # Sample images for interpretation
@@ -353,7 +353,7 @@ model = ImageClassifier(backbone="resnet50", num_classes=10)
 trainer = AutoTrainer(
     max_epochs=100,
     callbacks=[interp_callback, feature_callback],
-    logger="tensorboard",
+    logger=[LoggerConfig(backend="tensorboard", params={"save_dir": "logs"})],
 )
 
 trainer.fit(model, datamodule=data)

@@ -104,6 +104,14 @@ def test_training_step_no_targets_still_runs(model):
     }
     loss = model.training_step(batch, batch_idx=0)
     assert torch.isfinite(loss)
+    loss.backward()
+
+
+def test_predict_restores_training_mode(model):
+    """Inference must not silently leave a caller's model in eval mode."""
+    model.train()
+    model.predict(torch.randn(1, 3, 256, 256))
+    assert model.training
 
 
 def test_predict_returns_correct_structure(model):

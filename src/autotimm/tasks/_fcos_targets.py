@@ -126,6 +126,17 @@ def _grid_points(feat_h: int, feat_w: int, stride: int, device, dtype=torch.floa
     return points_x, points_y
 
 
+def _ltrb_to_relative_boxes(ltrb: torch.Tensor) -> torch.Tensor:
+    """Convert LTRB distances to boxes relative to their grid point.
+
+    A point with distances (l, t, r, b) corresponds to the box
+    (-l, -t, r, b) in a coordinate frame centered on the point. IoU/GIoU
+    are translation-invariant, so box losses computed on these relative
+    boxes equal those on the absolute boxes.
+    """
+    return torch.stack([-ltrb[:, 0], -ltrb[:, 1], ltrb[:, 2], ltrb[:, 3]], dim=-1)
+
+
 def compute_fcos_detection_loss(
     cls_outputs: list[torch.Tensor],
     reg_outputs: list[torch.Tensor],
@@ -136,6 +147,7 @@ def compute_fcos_detection_loss(
     regress_ranges: tuple[tuple[float, float], ...],
     focal_loss_fn,
     num_classes: int,
+    reg_loss_fn=None,
 ) -> dict[str, torch.Tensor]:
     """Compute FCOS classification/regression/centerness losses across all levels.
 
@@ -144,6 +156,11 @@ def compute_fcos_detection_loss(
 
     ``centerness_outputs`` may be ``None`` (e.g. YOLOX heads don't predict
     centerness), in which case ``centerness_loss`` is always zero.
+
+    ``reg_loss_fn``, when provided, is called with predicted/target boxes in
+    xyxy format (relative to each grid point) and should return a summed
+    loss — e.g. ``GIoULoss(reduction="sum")``. When ``None``, the default
+    ``-log(IoU)`` loss on LTRB distances is used.
 
     Returns:
         Dict with ``cls_loss``, ``reg_loss``, ``centerness_loss`` (each already
@@ -198,21 +215,39 @@ def compute_fcos_detection_loss(
 
         cls_out_flat = cls_out.permute(0, 2, 3, 1).reshape(-1, num_classes)
         cls_targets_flat = cls_targets.reshape(-1)
-        valid_mask = cls_targets_flat >= 0
+        pos_cls_mask = cls_targets_flat >= 0
 
-        if valid_mask.any():
-            total_cls_loss = total_cls_loss + focal_loss_fn(
-                cls_out_flat, cls_targets_flat
-            )
+        # FCOS uses independent sigmoid classifiers. Every unassigned point is
+        # a background negative (an all-zero target), not an ignored sample.
+        # Ignoring them means the detector never learns to suppress false
+        # positives and an all-background batch has no classification gradient.
+        dense_cls_targets = torch.zeros_like(cls_out_flat)
+        if pos_cls_mask.any():
+            positive_labels = cls_targets_flat[pos_cls_mask]
+            if (positive_labels >= num_classes).any():
+                raise ValueError(
+                    "Target class index exceeds num_classes: "
+                    f"max label={positive_labels.max().item()}, "
+                    f"num_classes={num_classes}"
+                )
+            dense_cls_targets[pos_cls_mask, positive_labels] = 1.0
+
+        total_cls_loss = total_cls_loss + focal_loss_fn(cls_out_flat, dense_cls_targets)
 
         pos_mask = cls_targets >= 0  # [B, H, W]
 
         if pos_mask.any():
             pos_reg_pred = reg_out.permute(0, 2, 3, 1)[pos_mask]
             pos_reg_target = reg_targets[pos_mask]
-            total_reg_loss = total_reg_loss + compute_iou_loss(
-                pos_reg_pred, pos_reg_target
-            )
+            if reg_loss_fn is not None:
+                total_reg_loss = total_reg_loss + reg_loss_fn(
+                    _ltrb_to_relative_boxes(pos_reg_pred),
+                    _ltrb_to_relative_boxes(pos_reg_target),
+                )
+            else:
+                total_reg_loss = total_reg_loss + compute_iou_loss(
+                    pos_reg_pred, pos_reg_target
+                )
 
             if cent_out is not None:
                 pos_cent_pred = cent_out.squeeze(1)[pos_mask]

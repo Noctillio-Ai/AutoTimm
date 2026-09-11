@@ -34,10 +34,14 @@ class TransformConfig:
         std: Override normalization std. If None and use_timm_config is True,
             uses the model's pretrained std. Otherwise defaults to ImageNet.
         interpolation: Interpolation mode for resizing. Common values:
-            ``"bilinear"``, ``"bicubic"``, ``"lanczos"``.
+            ``"bilinear"``, ``"bicubic"``, ``"lanczos"``. If ``None``
+            (default) and ``use_timm_config`` is True, uses the model's
+            pretrained interpolation; otherwise defaults to ``"bicubic"``.
         crop_pct: Center crop percentage for evaluation transforms.
             For a 224x224 image with crop_pct=0.875, the image is first
-            resized to 256x256 (224/0.875) then center cropped.
+            resized to 256x256 (224/0.875) then center cropped. If ``None``
+            (default) and ``use_timm_config`` is True, uses the model's
+            pretrained crop_pct; otherwise defaults to ``0.875``.
 
         Detection-specific options:
         min_bbox_area: Minimum bounding box area to keep after transforms.
@@ -71,8 +75,8 @@ class TransformConfig:
     use_timm_config: bool = True
     mean: tuple[float, float, float] | None = None
     std: tuple[float, float, float] | None = None
-    interpolation: str = "bicubic"
-    crop_pct: float = 0.875
+    interpolation: str | None = None
+    crop_pct: float | None = None
 
     # Detection-specific options
     min_bbox_area: float = 0.0
@@ -97,7 +101,7 @@ class TransformConfig:
         if self.image_size <= 0:
             raise ValueError(f"image_size must be positive, got {self.image_size}")
 
-        if not 0.0 < self.crop_pct <= 1.0:
+        if self.crop_pct is not None and not 0.0 < self.crop_pct <= 1.0:
             raise ValueError(f"crop_pct must be in (0, 1], got {self.crop_pct}")
 
         if self.mean is not None and len(self.mean) != 3:

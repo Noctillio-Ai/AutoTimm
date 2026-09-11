@@ -859,7 +859,7 @@ data = ImageDataModule(
     data_dir="./imbalanced_dataset",
     image_size=224,
     batch_size=32,
-    weighted_sampling=True,  # Oversample minority classes
+    balanced_sampling=True,  # Oversample minority classes
 )
 
 # Option 2: Use class weights in loss

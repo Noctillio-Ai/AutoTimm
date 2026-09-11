@@ -323,15 +323,21 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
             cls_targets = torch.stack(level_cls_targets)
             reg_targets = torch.stack(level_reg_targets)
 
-            # Classification loss
+            # Classification loss. YOLOX uses independent sigmoid classifiers,
+            # so unassigned points are background negatives (all-zero targets),
+            # not ignored samples — index targets with -1 would drop every
+            # background location and the detector would never learn to
+            # suppress false positives.
             cls_out_flat = cls_out.permute(0, 2, 3, 1).reshape(-1, self.num_classes)
             cls_targets_flat = cls_targets.reshape(-1)
-            valid_mask = cls_targets_flat >= 0
+            pos_cls_mask = cls_targets_flat >= 0
 
-            if valid_mask.any():
-                total_cls_loss = total_cls_loss + self.focal_loss(
-                    cls_out_flat, cls_targets_flat
-                )
+            dense_cls_targets = torch.zeros_like(cls_out_flat)
+            if pos_cls_mask.any():
+                dense_cls_targets[pos_cls_mask, cls_targets_flat[pos_cls_mask]] = 1.0
+            total_cls_loss = total_cls_loss + self.focal_loss(
+                cls_out_flat, dense_cls_targets
+            )
 
             # Regression loss (positive samples only)
             pos_mask = cls_targets >= 0
@@ -424,8 +430,20 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
     def _compute_iou_loss(
         self, pred_ltrb: torch.Tensor, target_ltrb: torch.Tensor
     ) -> torch.Tensor:
-        """Compute IoU loss from LTRB predictions."""
-        return self.giou_loss(pred_ltrb, target_ltrb)
+        """Compute GIoU loss from LTRB predictions.
+
+        GIoULoss expects xyxy boxes; a point with distances (l, t, r, b)
+        corresponds to the box (-l, -t, r, b) relative to the point, and
+        GIoU is translation-invariant, so relative boxes give the correct
+        loss. (Passing raw LTRB tuples as if they were boxes produced a
+        nonzero loss even for identical predictions/targets.)
+        """
+        from autotimm.tasks._fcos_targets import _ltrb_to_relative_boxes
+
+        return self.giou_loss(
+            _ltrb_to_relative_boxes(pred_ltrb),
+            _ltrb_to_relative_boxes(target_ltrb),
+        )
 
     def predict(self, images: torch.Tensor) -> list[dict[str, torch.Tensor]]:
         """Run inference and return detections with NMS."""
@@ -660,8 +678,14 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
 
         params = list(self.parameters())
 
-        # Create optimizer (YOLOX official uses SGD with momentum)
-        if self._optimizer.lower() == "sgd":
+        # Dict config: {"class": "path.to.Optimizer", "params": {...}}
+        if isinstance(self._optimizer, dict):
+            opt_kwargs = {"lr": self._lr, "weight_decay": self._weight_decay}
+            opt_kwargs.update(self._optimizer_kwargs)
+            opt_kwargs.update(self._optimizer.get("params", {}))
+            optimizer_cls = self._import_class(self._optimizer["class"])
+            optimizer = optimizer_cls(params, **opt_kwargs)
+        elif self._optimizer.lower() == "sgd":
             optimizer = torch.optim.SGD(
                 params,
                 lr=self._lr,
@@ -690,7 +714,12 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
             return {"optimizer": optimizer}
 
         # Create scheduler
-        if self._scheduler.lower() == "yolox":
+        # Dict config: {"class": "path.to.Scheduler", "params": {...}}
+        if isinstance(self._scheduler, dict):
+            sched_kwargs = dict(self._scheduler.get("params", {}))
+            scheduler_cls = self._import_class(self._scheduler["class"])
+            scheduler = scheduler_cls(optimizer, **sched_kwargs)
+        elif self._scheduler.lower() == "yolox":
             # Official YOLOX scheduler with warmup
             scheduler = YOLOXLRScheduler(
                 optimizer,
@@ -735,3 +764,14 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
                 "frequency": 1,
             },
         }
+
+    def _import_class(self, class_path: str):
+        """Import a class from a fully qualified path."""
+        import importlib
+
+        if "." not in class_path:
+            raise ValueError(f"Class path must be fully qualified, got: {class_path}")
+
+        module_path, class_name = class_path.rsplit(".", 1)
+        module = importlib.import_module(module_path)
+        return getattr(module, class_name)

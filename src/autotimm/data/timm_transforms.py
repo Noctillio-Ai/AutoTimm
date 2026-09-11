@@ -47,35 +47,53 @@ def resolve_backbone_data_config(
         >>> print(config["mean"])  # (0.485, 0.456, 0.406)
         >>> print(config["input_size"])  # (3, 224, 224)
     """
+    import timm
     import timm.data
+
+    fallback_config = {
+        "mean": IMAGENET_MEAN,
+        "std": IMAGENET_STD,
+        "input_size": (3, 224, 224),
+        "interpolation": "bicubic",
+        "crop_pct": 0.875,
+    }
 
     # Get base config from timm
     if isinstance(backbone, str):
-        # Resolve from model name
+        # Resolve from the model's pretrained config without instantiating it.
+        # (resolve_model_data_config expects a model instance, not a name —
+        # passing the string silently returned generic ImageNet defaults.)
         try:
-            data_config = timm.data.resolve_model_data_config(model=backbone)
+            model_name = backbone
+            for prefix in ("hf-hub:", "hf_hub:"):
+                if model_name.startswith(prefix):
+                    model_name = model_name[len(prefix) :]
+            candidates = [model_name]
+            # "timm/resnet50.a1_in1k" hub ids map to plain timm names
+            if "/" in model_name:
+                candidates.append(model_name.rsplit("/", 1)[-1])
+            pretrained_cfg = None
+            for candidate in candidates:
+                try:
+                    pretrained_cfg = timm.get_pretrained_cfg(candidate)
+                except Exception:
+                    pretrained_cfg = None
+                if pretrained_cfg is not None:
+                    break
+            if pretrained_cfg is None:
+                data_config = fallback_config
+            else:
+                data_config = timm.data.resolve_data_config(
+                    pretrained_cfg=pretrained_cfg.to_dict()
+                )
         except Exception:
-            # Fallback to ImageNet defaults if model not found
-            data_config = {
-                "mean": IMAGENET_MEAN,
-                "std": IMAGENET_STD,
-                "input_size": (3, 224, 224),
-                "interpolation": "bicubic",
-                "crop_pct": 0.875,
-            }
+            data_config = fallback_config
     else:
         # Extract from model instance
         try:
             data_config = timm.data.resolve_model_data_config(model=backbone)
         except Exception:
-            # Fallback to ImageNet defaults
-            data_config = {
-                "mean": IMAGENET_MEAN,
-                "std": IMAGENET_STD,
-                "input_size": (3, 224, 224),
-                "interpolation": "bicubic",
-                "crop_pct": 0.875,
-            }
+            data_config = fallback_config
 
     # Apply overrides
     result = {
@@ -137,7 +155,8 @@ def get_transforms_from_backbone(
         transform_config: TransformConfig specifying transform preferences.
         is_train: Whether to create training transforms (with augmentation)
             or evaluation transforms (minimal transforms).
-        task: Task type - "classification", "detection", or "segmentation".
+        task: Task type - "classification", "detection", "segmentation",
+            or "instance_segmentation".
 
     Returns:
         A callable transform pipeline. The type depends on the backend:
@@ -150,25 +169,30 @@ def get_transforms_from_backbone(
         ...     "efficientnet_b4", config, is_train=True
         ... )
     """
-    # Resolve data config from backbone
-    data_config = resolve_backbone_data_config(
-        backbone,
-        override_mean=(
-            transform_config.mean if not transform_config.use_timm_config else None
-        ),
-        override_std=(
-            transform_config.std if not transform_config.use_timm_config else None
-        ),
-        override_interpolation=transform_config.interpolation,
-        override_crop_pct=transform_config.crop_pct,
-    )
+    # Resolve data config. Explicit user values always win; unset values fall
+    # back to the model's pretrained config (when use_timm_config=True) or to
+    # ImageNet defaults.
+    if transform_config.use_timm_config:
+        data_config = resolve_backbone_data_config(
+            backbone,
+            override_mean=transform_config.mean,
+            override_std=transform_config.std,
+            override_interpolation=transform_config.interpolation,
+            override_crop_pct=transform_config.crop_pct,
+        )
+    else:
+        data_config = {
+            "mean": transform_config.mean or IMAGENET_MEAN,
+            "std": transform_config.std or IMAGENET_STD,
+            "interpolation": transform_config.interpolation or "bicubic",
+            "crop_pct": transform_config.crop_pct or 0.875,
+        }
 
-    # Use config overrides if use_timm_config is False
-    mean = transform_config.mean if transform_config.mean else data_config["mean"]
-    std = transform_config.std if transform_config.std else data_config["std"]
+    mean = data_config["mean"]
+    std = data_config["std"]
     image_size = transform_config.image_size
-    interpolation = transform_config.interpolation
-    crop_pct = transform_config.crop_pct
+    interpolation = data_config["interpolation"]
+    crop_pct = data_config["crop_pct"]
 
     if transform_config.backend == "torchvision":
         return _create_torchvision_transforms(
@@ -284,11 +308,19 @@ def _create_albumentations_transforms(
             "Install with: pip install autotimm[albumentations]"
         )
 
-    # Configure bbox params for detection tasks
+    # Configure bbox params for tasks that transform boxes alongside images.
+    # Instance segmentation datasets pass xyxy boxes (pascal_voc format).
     bbox_params = None
     if task == "detection":
         bbox_params = A.BboxParams(
             format=bbox_format,
+            min_area=min_bbox_area,
+            min_visibility=min_visibility,
+            label_fields=["labels"],
+        )
+    elif task == "instance_segmentation":
+        bbox_params = A.BboxParams(
+            format="pascal_voc",
             min_area=min_bbox_area,
             min_visibility=min_visibility,
             label_fields=["labels"],

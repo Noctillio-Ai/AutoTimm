@@ -337,9 +337,9 @@ loss_fn = FCOSLoss(
     num_classes=80,
     focal_alpha=0.25,
     focal_gamma=2.0,
-    cls_loss_weight=1.0,
-    reg_loss_weight=1.0,
-    centerness_loss_weight=1.0,
+    cls_weight=1.0,
+    reg_weight=1.0,
+    centerness_weight=1.0,
 )
 
 # Predictions from detection head
@@ -371,11 +371,9 @@ total_loss = loss_dict["loss"]
 | `num_classes` | `int` | Required | Number of object classes |
 | `focal_alpha` | `float` | `0.25` | Focal loss alpha |
 | `focal_gamma` | `float` | `2.0` | Focal loss gamma |
-| `cls_loss_weight` | `float` | `1.0` | Classification loss weight (λ_cls) |
-| `reg_loss_weight` | `float` | `1.0` | Regression loss weight (λ_reg) |
-| `centerness_loss_weight` | `float` | `1.0` | Centerness loss weight (λ_centerness) |
-| `strides` | `tuple[int, ...]` | `(8, 16, 32, 64, 128)` | FPN strides |
-| `regress_ranges` | `tuple[tuple[float, float], ...] \| None` | `None` | Regression ranges for each level |
+| `cls_weight` | `float` | `1.0` | Classification loss weight (λ_cls) |
+| `reg_weight` | `float` | `1.0` | Regression loss weight (λ_reg) |
+| `centerness_weight` | `float` | `1.0` | Centerness loss weight (λ_centerness) |
 
 ### Returns
 

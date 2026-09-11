@@ -157,7 +157,7 @@ in_channels = [512, 1024, 2048]  # C3, C4, C5
 
 # Create FPN
 fpn = FPN(
-    in_channels=in_channels,
+    in_channels_list=in_channels,
     out_channels=256,
 )
 

@@ -28,13 +28,7 @@ from autotimm import TransformConfig
 
 # Debug transforms
 transform_config = TransformConfig(
-    train_preset="light",
-    additional_transforms=[
-        {
-            "transform": "ColorJitter",
-            "params": {"brightness": 0.2, "contrast": 0.2},
-        }
-    ],
+    preset="light",
 )
 
 # Test transform on single image
@@ -58,9 +52,8 @@ from autotimm import DetectionDataModule
 data = DetectionDataModule(
     data_dir="./data",
     image_size=640,
-    bbox_format="xyxy",  # Must match your annotations
     # Geometric transforms automatically handle bboxes
-    augmentation_preset="medium",
+    augmentation_preset="strong",  # or "default"
 )
 ```
 

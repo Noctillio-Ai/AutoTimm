@@ -42,8 +42,10 @@ class FocalLoss(nn.Module):
 
         Args:
             inputs: Predicted logits of shape [N, C] or [N, C, H, W].
-            targets: Ground truth class indices of shape [N] or [N, H, W].
-                Use -1 to ignore samples.
+            targets: Ground truth class indices of shape [N] or [N, H, W]
+                (use -1 to ignore samples), or binary multi-label targets
+                matching ``inputs``. Dense binary targets are used by FCOS so
+                background locations contribute negative classification loss.
 
         Returns:
             Focal loss value.
@@ -53,22 +55,26 @@ class FocalLoss(nn.Module):
             # [N, C, H, W] -> [N, H, W, C] -> [N*H*W, C]
             n, c, h, w = inputs.shape
             inputs = inputs.permute(0, 2, 3, 1).reshape(-1, c)
-            targets = targets.reshape(-1)
-
-        # Filter out ignored samples (targets == -1)
-        valid_mask = targets >= 0
-        if not valid_mask.any():
-            return inputs.sum() * 0.0
-
-        inputs = inputs[valid_mask]
-        targets = targets[valid_mask]
+            if targets.shape == (n, c, h, w):
+                targets = targets.permute(0, 2, 3, 1).reshape(-1, c)
+            else:
+                targets = targets.reshape(-1)
 
         # Compute probabilities
         p = torch.sigmoid(inputs)
         num_classes = inputs.shape[-1]
 
-        # Create one-hot encoded targets
-        targets_one_hot = F.one_hot(targets, num_classes).float()
+        if targets.shape == inputs.shape:
+            targets_one_hot = targets.to(dtype=inputs.dtype)
+        else:
+            # Filter out ignored samples (targets == -1) for index targets.
+            valid_mask = targets >= 0
+            if not valid_mask.any():
+                return inputs.sum() * 0.0
+            inputs = inputs[valid_mask]
+            p = p[valid_mask]
+            targets = targets[valid_mask]
+            targets_one_hot = F.one_hot(targets, num_classes).to(dtype=inputs.dtype)
 
         # Compute focal weights
         pt = p * targets_one_hot + (1 - p) * (1 - targets_one_hot)

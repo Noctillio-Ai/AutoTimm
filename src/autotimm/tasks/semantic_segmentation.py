@@ -123,11 +123,15 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
                 stacklevel=2,
             )
 
-        # Normalize backbone to a plain string so it survives checkpoint
-        # round-trip (FeatureBackboneConfig is not serialised by save_hyperparameters).
-        backbone = (
-            backbone.model_name if hasattr(backbone, "model_name") else str(backbone)
-        )
+        # Keep the full config for backbone creation, but normalize the
+        # `backbone` local to a plain string so save_hyperparameters() stores
+        # a serializable value for checkpoint round-trips.
+        if isinstance(backbone, FeatureBackboneConfig):
+            backbone_cfg: FeatureBackboneConfig | str = backbone
+            backbone = backbone.model_name
+        else:
+            backbone = str(backbone)
+            backbone_cfg = backbone
 
         super().__init__()
         self.save_hyperparameters(
@@ -148,7 +152,7 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         )
 
         # Create feature backbone
-        self.backbone = create_feature_backbone(backbone)
+        self.backbone = create_feature_backbone(backbone_cfg)
         in_channels_list = get_feature_channels(self.backbone)
 
         # Create segmentation head
@@ -344,7 +348,12 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         Returns:
             Loss value
         """
-        # Resize logits to match mask size if needed
+        logits = self._match_mask_size(logits, masks)
+        return self.criterion(logits, masks)
+
+    @staticmethod
+    def _match_mask_size(logits: torch.Tensor, masks: torch.Tensor) -> torch.Tensor:
+        """Resize logits to the mask resolution if they differ."""
         if logits.shape[-2:] != masks.shape[-2:]:
             logits = F.interpolate(
                 logits,
@@ -352,8 +361,7 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
                 mode="bilinear",
                 align_corners=False,
             )
-
-        return self.criterion(logits, masks)
+        return logits
 
     def training_step(self, batch: dict[str, Any], batch_idx: int) -> torch.Tensor:
         """Training step.
@@ -371,8 +379,8 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         logits = self(images)
         loss = self._compute_loss(logits, masks)
 
-        # Get predictions
-        preds = logits.argmax(dim=1)
+        # Predictions at mask resolution so metrics see matching shapes
+        preds = self._match_mask_size(logits, masks).argmax(dim=1)
 
         # Log loss
         self.log("train/loss", loss, prog_bar=True)
@@ -440,8 +448,8 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         logits = self(images)
         loss = self._compute_loss(logits, masks)
 
-        # Get predictions
-        preds = logits.argmax(dim=1)
+        # Predictions at mask resolution so metrics see matching shapes
+        preds = self._match_mask_size(logits, masks).argmax(dim=1)
 
         try:
             is_sanity = getattr(self.trainer, "sanity_checking", False)
@@ -479,8 +487,8 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         logits = self(images)
         loss = self._compute_loss(logits, masks)
 
-        # Get predictions
-        preds = logits.argmax(dim=1)
+        # Predictions at mask resolution so metrics see matching shapes
+        preds = self._match_mask_size(logits, masks).argmax(dim=1)
 
         # Log loss
         self.log("test/loss", loss)
@@ -633,22 +641,27 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         if optimizer_name in torch_optimizers:
             return torch_optimizers[optimizer_name](params, **opt_kwargs)
 
-        # Try timm optimizers
+        # Try timm optimizers (looked up lazily so a missing class only
+        # affects the optimizer that needs it)
         try:
             import timm.optim as timm_optim
 
-            timm_optimizers = {
-                "adamp": timm_optim.AdamP,
-                "sgdp": timm_optim.SGDP,
-                "adabelief": timm_optim.AdaBelief,
-                "radam": timm_optim.RAdam,
-                "lamb": timm_optim.Lamb,
-                "madgrad": timm_optim.MADGRAD,
-                "novograd": timm_optim.NovGrad,
+            timm_optimizer_names = {
+                "adamp": "AdamP",
+                "sgdp": "SGDP",
+                "adabelief": "AdaBelief",
+                "radam": "RAdam",
+                "lamb": "Lamb",
+                "madgrad": "MADGRAD",
+                "novograd": "NvNovoGrad",
             }
 
-            if optimizer_name in timm_optimizers:
-                return timm_optimizers[optimizer_name](params, **opt_kwargs)
+            if optimizer_name in timm_optimizer_names:
+                optimizer_cls = getattr(
+                    timm_optim, timm_optimizer_names[optimizer_name], None
+                )
+                if optimizer_cls is not None:
+                    return optimizer_cls(params, **opt_kwargs)
         except ImportError:
             pass
 
@@ -730,6 +743,7 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
                 **sched_kwargs,
             )
         elif scheduler_name == "plateau":
+            monitor = sched_kwargs.pop("monitor", "val/loss")
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 optimizer,
                 mode=sched_kwargs.pop("mode", "min"),
@@ -740,7 +754,7 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
             interval = "epoch"
             return {
                 "scheduler": scheduler,
-                "monitor": sched_kwargs.pop("monitor", "val/loss"),
+                "monitor": monitor,
                 "interval": interval,
                 "frequency": frequency,
             }

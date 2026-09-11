@@ -27,7 +27,9 @@ def test_auto_trainer_checkpoint_callback_with_monitor():
 
 
 def test_auto_trainer_no_custom_checkpoint_callback_without_monitor():
-    trainer = AutoTrainer(max_epochs=1, logger=False, enable_checkpointing=True, checkpoint_monitor=None)
+    trainer = AutoTrainer(
+        max_epochs=1, logger=False, enable_checkpointing=True, checkpoint_monitor=None
+    )
     # No checkpoint_monitor specified, so no custom checkpoint with monitor should be added
     # Lightning may still add a default one
     checkpoint_cbs = [

@@ -160,59 +160,42 @@ if __name__ == "__main__":
 
 ---
 
-## Preset Manager
+## Transform Backend Recommendation
 
-Manage and reuse training configurations with preset templates.
+Get a recommended transform backend and preset for your task.
 
 ```python
-from autotimm import PresetManager, AutoTrainer, ImageClassifier
-from autotimm.data import ImageDataModule
+from autotimm import recommend_backend, ImageDataModule
 
 
 def main():
-    # Create a preset manager
-    preset_manager = PresetManager()
-    
-    # Save current configuration as preset
-    preset_manager.save_preset(
-        name="resnet18_baseline",
-        model_configs={
-            "backbone": "resnet18",
-            "num_classes": 10,
-            "lr": 1e-3,
-            "optimizer": "adamw",
-        },
-        trainer_configs={
-            "max_epochs": 50,
-            "precision": "16-mixed",
-        },
-        data_configs={
-            "batch_size": 32,
-            "image_size": 224,
-        }
+    # Get a recommendation for your use case
+    rec = recommend_backend(
+        task="classification",
+        needs_advanced_augmentation=False,
     )
-    
-    # Load and use a preset
-    configs = preset_manager.load_preset("resnet18_baseline")
-    
-    # Create model and datamodule from preset
-    model = ImageClassifier(**configs["model_configs"])
-    data = ImageDataModule(**configs["data_configs"], data_dir="./data")
-    trainer = AutoTrainer(**configs["trainer_configs"])
-    
-    trainer.fit(model, datamodule=data)
+    print(rec)
+
+    # Convert the recommendation into a TransformConfig
+    config = rec.to_config(image_size=224)
+
+    data = ImageDataModule(
+        data_dir="./data",
+        transform_config=config,
+        backbone="resnet50",
+    )
 
 
 if __name__ == "__main__":
     main()
 ```
 
-**Preset Manager Features:**
+**Recommendation Features:**
 
-- **Save configurations**: Store successful training setups
-- **Reuse presets**: Quickly apply proven configurations
-- **Share presets**: Export/import configurations across projects
-- **Version control**: Track configuration changes over time
+- **Task-aware**: Suggests albumentations for detection/segmentation
+- **Preset selection**: Picks a matching augmentation preset
+- **Reasoning**: Explains why a backend was chosen
+- **Comparison**: Use `compare_backends()` to see both side by side
 
 ---
 
@@ -243,7 +226,6 @@ def main():
     model = ImageClassifier(
         backbone="resnet50",
         num_classes=10,
-        channels_last=True,  # Memory format optimization
         compile_model=True,  # torch.compile (PyTorch 2.0+)
     )
     

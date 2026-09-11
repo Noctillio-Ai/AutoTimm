@@ -5,7 +5,85 @@ All notable changes to AutoTimm are documented here. Format loosely follows
 per-release history, see [GitHub Releases](https://github.com/theja-vanka/AutoTimm/releases),
 which are auto-generated from commits on each tagged publish.
 
-## [Unreleased]
+## [0.8.0rc1] — 2026-09-11
+
+First release candidate. Beyond the changes below, this release includes a
+full-codebase quality pass over every argument combination exposed by the
+public API.
+
+### Fixed — rc1 quality pass
+- **CSV detection datasets corrupted bounding boxes.** `CSVDetectionDataset`
+  passed xyxy boxes into transform pipelines declared with COCO
+  (`[x, y, w, h]`) bbox format and used the output as xyxy. Any geometric
+  transform (flip, pad) silently produced wrong boxes, and boxes near the
+  right/bottom image edge crashed albumentations validation. Boxes are now
+  converted xyxy → coco before the transform and back after.
+- **albumentations 2.x silently ignored renamed arguments.**
+  `PadIfNeeded(value=..., mask_value=...)` and `GaussNoise(var_limit=...)`
+  are no-ops in albumentations 2.x — segmentation mask padding was filled
+  with class 0 instead of `ignore_index` 255, and detection padding lost its
+  gray fill. Migrated to `fill=`/`fill_mask=`/`std_range=`.
+- **`balanced_sampling` with an automatic val split crashed or mis-weighted.**
+  Sampler weights were computed over the full pre-split dataset, so
+  `WeightedRandomSampler` indexed past the training subset (IndexError).
+  Built-in datasets with tensor targets (MNIST) additionally hashed targets
+  by identity, silently making balanced sampling a no-op.
+- **Automatic validation splits were augmented with training transforms.**
+  `random_split` shared the training dataset instance; the val subset now
+  wraps a separate dataset built with eval transforms (`ImageDataModule`,
+  `MultiLabelImageDataModule`, built-in dataset mode).
+- **Model-specific normalization was silently wrong for string backbones.**
+  `resolve_backbone_data_config("vit_...")` fell back to generic ImageNet
+  stats (ViTs should use mean/std 0.5 and crop_pct 0.9). String backbones now
+  resolve through `timm.get_pretrained_cfg`, including tagged
+  (`resnet50.a1_in1k`) and `hf-hub:`/`timm/` names.
+  `TransformConfig.interpolation`/`crop_pct` now default to `None` so the
+  model's pretrained values win unless explicitly overridden.
+- **Every timm optimizer name raised `AttributeError`.** The optimizer maps
+  referenced `timm.optim.NovGrad`, which doesn't exist in timm 1.x, and the
+  map was built eagerly — `optimizer="adamp"` (or any timm optimizer) crashed.
+  `"novograd"` now maps to `NvNovoGrad` and classes are looked up lazily.
+- **`scheduler="cosine_with_restarts"` crashed at the first scheduler step**
+  (timm schedulers need `step(epoch)`); `ImageClassifier` now overrides
+  `lr_scheduler_step`. `scheduler="plateau"` with `monitor` in
+  `scheduler_kwargs` no longer raises `TypeError`.
+- **Tasks silently discarded `BackboneConfig`/`FeatureBackboneConfig` fields**
+  (`pretrained`, `drop_rate`, `drop_path_rate`, `extra_kwargs`); the config
+  is now honored, with hparams still storing the serializable name.
+- **YOLOXDetector's regression loss was mathematically wrong** — raw LTRB
+  distances were fed to `GIoULoss` as if they were xyxy boxes (identical
+  predictions scored loss 1.0). Its classification loss also ignored all
+  background locations. Both now match the shared FCOS implementation.
+- **`reg_loss_fn` was accepted but never used** by
+  `ObjectDetector`/`InstanceSegmentor`; a custom regression loss is now
+  applied (on point-relative xyxy boxes). Default behavior unchanged.
+- **InstanceSegmentor mask training/inference was spatially misaligned.**
+  Training targets resized the full-image mask to 28×28 while the head
+  predicts within each ROI box (targets are now `roi_align`-cropped), and
+  `predict()` stretched the ROI mask over the entire image (now pasted into
+  the box region).
+- **`SemanticSegmentor` with metrics crashed on shape mismatch** — argmax
+  predictions were at head resolution while masks are full-resolution;
+  predictions now share the loss path's interpolation.
+- **`InstanceSegmentationDataModule` + `transform_config` crashed** on the
+  first sample (transforms built without `bbox_params`); a new
+  `instance_segmentation` task mode attaches pascal_voc bbox params.
+- `get_train_transforms("light")` was rejected although
+  `list_transform_presets()` advertises it; added for both backends.
+- `DetectionDataModule` CSV mode without `val_csv` crashed in
+  `val_dataloader()`; validation is now skipped.
+- `YOLOXDetector` documented dict optimizer/scheduler configs but crashed on
+  them (`.lower()` on a dict); dict configs are now supported.
+- Valid tagged timm names (`resnet50.a1_in1k`) were wrongly rejected by
+  `create_backbone`/`create_feature_backbone`.
+- `autotimm-flow augmentation-preview` rendered normalized tensors (dark or
+  garbage previews); pixels are now denormalized. `tensorrt-convert` no
+  longer writes a `None` engine on build failure.
+- Examples and docs: fixed 30+ code snippets that passed parameters which do
+  not exist (`head_channels`, `mask_head_channels`, `train_split`,
+  `weighted_sampling`, `bbox_format`, `channels_last`, `loss_kwargs`,
+  `LoggingConfig(log_dir=...)`, string `logger=` values, a fictional
+  `PresetManager` class, wrong `FCOSLoss` weight names, and more).
 
 ### Fixed — InstanceSegmentor detection path was non-functional (breaking)
 `InstanceSegmentor`'s detection head previously received **zero training

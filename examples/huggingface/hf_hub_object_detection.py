@@ -118,7 +118,6 @@ def train_detector_with_resnet():
         backbone="hf-hub:timm/resnet50.a1_in1k",
         num_classes=80,
         fpn_channels=256,
-        head_channels=256,
         metrics=metrics,
         lr=1e-3,
         optimizer="adamw",
@@ -175,7 +174,6 @@ def train_detector_with_resnext():
         backbone="hf-hub:timm/resnext50_32x4d.a1_in1k",
         num_classes=80,
         fpn_channels=256,
-        head_channels=256,
         metrics=metrics,
         lr=1e-3,
         optimizer="adamw",
@@ -233,7 +231,6 @@ def train_efficient_detector():
         backbone="hf-hub:timm/efficientnet_b2.ra_in1k",
         num_classes=80,
         fpn_channels=128,  # Smaller FPN for efficiency
-        head_channels=128,
         metrics=metrics,
         lr=1e-3,
         optimizer="adamw",
@@ -289,7 +286,6 @@ def train_modern_detector():
         backbone="hf-hub:timm/convnext_tiny.fb_in22k",
         num_classes=80,
         fpn_channels=256,
-        head_channels=256,
         metrics=metrics,
         lr=5e-4,  # Lower LR for modern architecture
         optimizer="adamw",
