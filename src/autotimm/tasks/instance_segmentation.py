@@ -290,7 +290,10 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
                 alpha=focal_alpha, gamma=focal_gamma, reduction="sum"
             )
 
-        # Setup regression loss
+        # Setup regression loss. When the user provides one, it is used on
+        # xyxy boxes (relative to each grid point); the default is the
+        # -log(IoU) loss on LTRB distances inside compute_fcos_detection_loss.
+        self._custom_reg_loss = reg_loss_fn is not None
         if reg_loss_fn is not None:
             if isinstance(reg_loss_fn, str):
                 registry = get_loss_registry()
@@ -466,6 +469,7 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
             self.regress_ranges,
             self.focal_loss,
             self.num_classes,
+            reg_loss_fn=self.giou_loss if self._custom_reg_loss else None,
         )
         return losses["cls_loss"], losses["reg_loss"], losses["centerness_loss"]
 
@@ -548,13 +552,21 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
             indices, labels_batch
         ]  # [total_N, mask_size, mask_size]
 
-        # Resize target masks to match prediction size
-        target_masks_resized = F.interpolate(
-            target_masks_batch.unsqueeze(1).float(),
-            size=(self.mask_size, self.mask_size),
-            mode="bilinear",
-            align_corners=False,
+        # Crop each target mask to its ROI box and resize to the mask head's
+        # output resolution — the head predicts within the box, so resizing
+        # the full-image mask would misalign every training target.
+        instance_idx = torch.arange(
+            len(labels_batch), device=device, dtype=rois.dtype
+        ).unsqueeze(1)
+        mask_rois = torch.cat([instance_idx, rois[:, 1:]], dim=1)  # [total_N, 5]
+        target_masks_resized = ops.roi_align(
+            target_masks_batch.unsqueeze(1).float(),  # each mask is its own "image"
+            mask_rois,
+            output_size=(self.mask_size, self.mask_size),
+            spatial_scale=1.0,
+            aligned=True,
         ).squeeze(1)  # [total_N, mask_size, mask_size]
+        target_masks_resized = (target_masks_resized >= 0.5).float()
 
         # Compute mask loss
         loss = self.mask_loss_fn(mask_logits, target_masks_resized)
@@ -781,13 +793,26 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
                 indices = torch.arange(len(labels), device=images.device)
                 mask_logits = mask_logits[indices, labels]  # [N, mask_size, mask_size]
 
-                masks = F.interpolate(
-                    mask_logits.sigmoid().unsqueeze(1),
-                    size=(img_h, img_w),
-                    mode="bilinear",
-                    align_corners=False,
-                ).squeeze(1)
-                masks = masks > self.mask_threshold
+                # Paste each ROI mask into its box region (the head predicts
+                # within the box, not over the full image).
+                mask_probs = mask_logits.sigmoid()
+                masks = torch.zeros(
+                    (len(boxes), img_h, img_w),
+                    dtype=torch.bool,
+                    device=images.device,
+                )
+                for j in range(len(boxes)):
+                    x1 = int(boxes[j, 0].floor().clamp(0, img_w - 1))
+                    y1 = int(boxes[j, 1].floor().clamp(0, img_h - 1))
+                    x2 = int(boxes[j, 2].ceil().clamp(x1 + 1, img_w))
+                    y2 = int(boxes[j, 3].ceil().clamp(y1 + 1, img_h))
+                    box_mask = F.interpolate(
+                        mask_probs[j][None, None],
+                        size=(y2 - y1, x2 - x1),
+                        mode="bilinear",
+                        align_corners=False,
+                    )[0, 0]
+                    masks[j, y1:y2, x1:x2] = box_mask > self.mask_threshold
 
                 predictions.append(
                     {

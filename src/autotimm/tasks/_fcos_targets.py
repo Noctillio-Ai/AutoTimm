@@ -126,6 +126,19 @@ def _grid_points(feat_h: int, feat_w: int, stride: int, device, dtype=torch.floa
     return points_x, points_y
 
 
+def _ltrb_to_relative_boxes(ltrb: torch.Tensor) -> torch.Tensor:
+    """Convert LTRB distances to boxes relative to their grid point.
+
+    A point with distances (l, t, r, b) corresponds to the box
+    (-l, -t, r, b) in a coordinate frame centered on the point. IoU/GIoU
+    are translation-invariant, so box losses computed on these relative
+    boxes equal those on the absolute boxes.
+    """
+    return torch.stack(
+        [-ltrb[:, 0], -ltrb[:, 1], ltrb[:, 2], ltrb[:, 3]], dim=-1
+    )
+
+
 def compute_fcos_detection_loss(
     cls_outputs: list[torch.Tensor],
     reg_outputs: list[torch.Tensor],
@@ -136,6 +149,7 @@ def compute_fcos_detection_loss(
     regress_ranges: tuple[tuple[float, float], ...],
     focal_loss_fn,
     num_classes: int,
+    reg_loss_fn=None,
 ) -> dict[str, torch.Tensor]:
     """Compute FCOS classification/regression/centerness losses across all levels.
 
@@ -144,6 +158,11 @@ def compute_fcos_detection_loss(
 
     ``centerness_outputs`` may be ``None`` (e.g. YOLOX heads don't predict
     centerness), in which case ``centerness_loss`` is always zero.
+
+    ``reg_loss_fn``, when provided, is called with predicted/target boxes in
+    xyxy format (relative to each grid point) and should return a summed
+    loss — e.g. ``GIoULoss(reduction="sum")``. When ``None``, the default
+    ``-log(IoU)`` loss on LTRB distances is used.
 
     Returns:
         Dict with ``cls_loss``, ``reg_loss``, ``centerness_loss`` (each already
@@ -222,9 +241,15 @@ def compute_fcos_detection_loss(
         if pos_mask.any():
             pos_reg_pred = reg_out.permute(0, 2, 3, 1)[pos_mask]
             pos_reg_target = reg_targets[pos_mask]
-            total_reg_loss = total_reg_loss + compute_iou_loss(
-                pos_reg_pred, pos_reg_target
-            )
+            if reg_loss_fn is not None:
+                total_reg_loss = total_reg_loss + reg_loss_fn(
+                    _ltrb_to_relative_boxes(pos_reg_pred),
+                    _ltrb_to_relative_boxes(pos_reg_target),
+                )
+            else:
+                total_reg_loss = total_reg_loss + compute_iou_loss(
+                    pos_reg_pred, pos_reg_target
+                )
 
             if cent_out is not None:
                 pos_cent_pred = cent_out.squeeze(1)[pos_mask]

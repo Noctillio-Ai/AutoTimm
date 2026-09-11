@@ -269,7 +269,10 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
                 alpha=focal_alpha, gamma=focal_gamma, reduction="sum"
             )
 
-        # Setup regression loss
+        # Setup regression loss. When the user provides one, it is used on
+        # xyxy boxes (relative to each grid point); the default is the
+        # -log(IoU) loss on LTRB distances inside compute_fcos_detection_loss.
+        self._custom_reg_loss = reg_loss_fn is not None
         if reg_loss_fn is not None:
             if isinstance(reg_loss_fn, str):
                 registry = get_loss_registry()
@@ -281,7 +284,8 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
                     f"reg_loss_fn must be a string or nn.Module instance, got {type(reg_loss_fn)}"
                 )
         else:
-            # Default: GIoULoss
+            # Kept for API compatibility; the FCOS loss uses its built-in
+            # IoU loss unless a custom reg_loss_fn was provided.
             self.giou_loss = GIoULoss(reduction="sum")
 
         # Initialize metrics
@@ -437,6 +441,7 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
             self.regress_ranges,
             self.focal_loss,
             self.num_classes,
+            reg_loss_fn=self.giou_loss if self._custom_reg_loss else None,
         )
 
         cls_loss = self.cls_loss_weight * losses["cls_loss"]
