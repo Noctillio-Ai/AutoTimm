@@ -94,9 +94,9 @@ class FPN(nn.Module):
         Returns:
             List of pyramid features [P3, P4, P5, P6, P7] with uniform channels.
         """
-        assert len(features) == len(self.in_channels_list), (
-            f"Expected {len(self.in_channels_list)} features, got {len(features)}"
-        )
+        assert len(features) == len(
+            self.in_channels_list
+        ), f"Expected {len(self.in_channels_list)} features, got {len(features)}"
 
         # Build top-down pathway
         laterals = [

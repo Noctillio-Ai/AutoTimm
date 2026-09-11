@@ -221,9 +221,7 @@ class ImageDataModule(pl.LightningDataModule):
             full_eval = cls(str(self.data_dir), train=True, transform=wrapper_eval)
             n_val = int(len(full_train) * self.val_split)
             n_train = len(full_train) - n_val
-            self.train_dataset, val_subset = random_split(
-                full_train, [n_train, n_val]
-            )
+            self.train_dataset, val_subset = random_split(full_train, [n_train, n_val])
             self.val_dataset = Subset(full_eval, val_subset.indices)
             self.num_classes = (
                 len(full_train.classes) if hasattr(full_train, "classes") else 10
@@ -289,9 +287,7 @@ class ImageDataModule(pl.LightningDataModule):
         test_dir = self.data_dir / "test"
 
         if stage in ("fit", None):
-            full_train = ImageFolderCV2(
-                str(train_dir), transform=self.train_transforms
-            )
+            full_train = ImageFolderCV2(str(train_dir), transform=self.train_transforms)
             self.train_dataset = full_train
             self.num_classes = len(full_train.classes)
             self.class_names = list(full_train.classes)

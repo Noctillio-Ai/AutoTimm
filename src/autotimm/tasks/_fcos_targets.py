@@ -134,9 +134,7 @@ def _ltrb_to_relative_boxes(ltrb: torch.Tensor) -> torch.Tensor:
     are translation-invariant, so box losses computed on these relative
     boxes equal those on the absolute boxes.
     """
-    return torch.stack(
-        [-ltrb[:, 0], -ltrb[:, 1], ltrb[:, 2], ltrb[:, 3]], dim=-1
-    )
+    return torch.stack([-ltrb[:, 0], -ltrb[:, 1], ltrb[:, 2], ltrb[:, 3]], dim=-1)
 
 
 def compute_fcos_detection_loss(
