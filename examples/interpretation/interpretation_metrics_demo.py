@@ -8,16 +8,16 @@ Demonstrates how to quantitatively evaluate explanation methods using:
 - Localization metrics (pointing game)
 """
 
-from PIL import Image
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
 
 from autotimm import ImageClassifier
 from autotimm.interpretation import (
+    ExplanationMetrics,
     GradCAM,
     GradCAMPlusPlus,
     IntegratedGradients,
-    ExplanationMetrics,
 )
 
 
@@ -63,7 +63,7 @@ def example_1_deletion_insertion():
     print(f"  Baseline score: {insertion_result['baseline_score']:.4f}")
 
     # Plot curves
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+    _fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
 
     # Deletion curve
     ax1.plot(deletion_result["scores"], "b-", linewidth=2)

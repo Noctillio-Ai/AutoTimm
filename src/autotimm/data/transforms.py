@@ -119,7 +119,7 @@ TORCHVISION_PRESETS: dict[str, callable] = {
 
 def _require_albumentations():
     try:
-        import albumentations  # noqa: F401
+        import albumentations
 
         return albumentations
     except ImportError:

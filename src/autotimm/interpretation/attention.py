@@ -1,10 +1,11 @@
 """Attention visualization for Vision Transformers."""
 
-from typing import Optional, Union, Literal
-import torch
-import torch.nn as nn
+from typing import Literal
+
 import numpy as np
+import torch
 from PIL import Image
+from torch import nn
 
 from autotimm.interpretation.base import BaseInterpreter
 
@@ -87,8 +88,8 @@ class AttentionRollout(BaseInterpreter):
 
     def explain(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
     ) -> np.ndarray:
         """
         Generate attention rollout map.
@@ -181,8 +182,8 @@ class AttentionRollout(BaseInterpreter):
     def visualize(
         self,
         attention_map: np.ndarray,
-        image: Union[Image.Image, np.ndarray],
-        save_path: Optional[str] = None,
+        image: Image.Image | np.ndarray,
+        save_path: str | None = None,
         alpha: float = 0.5,
         colormap: str = "viridis",
     ) -> np.ndarray:
@@ -256,7 +257,7 @@ class AttentionFlow:
 
     def __call__(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
+        image: Image.Image | np.ndarray | torch.Tensor,
         from_patch: int,
         layer_idx: int = -1,
     ) -> np.ndarray:
@@ -275,7 +276,7 @@ class AttentionFlow:
 
     def get_attention_flow(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
+        image: Image.Image | np.ndarray | torch.Tensor,
         from_patch: int,
         layer_idx: int = -1,
     ) -> np.ndarray:
@@ -368,6 +369,6 @@ class AttentionFlow:
 
 
 __all__ = [
-    "AttentionRollout",
     "AttentionFlow",
+    "AttentionRollout",
 ]

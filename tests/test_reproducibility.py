@@ -4,9 +4,10 @@ Tests for reproducibility features: seeding and deterministic mode.
 
 import pickle
 
+import numpy as np
 import pytest
 import torch
-import numpy as np
+
 from autotimm import AutoTrainer, seed_everything
 from autotimm.core.utils import safe_torch_load
 from autotimm.tasks.classification import ImageClassifier
@@ -235,7 +236,7 @@ class TestReproducibleTraining:
     @pytest.fixture
     def simple_data(self):
         """Create simple dummy data for testing."""
-        from torch.utils.data import TensorDataset, DataLoader
+        from torch.utils.data import DataLoader, TensorDataset
 
         # Create dummy data
         X = torch.randn(100, 3, 32, 32)

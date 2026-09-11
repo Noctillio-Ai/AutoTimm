@@ -1,10 +1,11 @@
 """Integrated Gradients implementation for attribution."""
 
-from typing import Optional, Union, Literal
-import torch
-import numpy as np
-from PIL import Image
+from typing import Literal
+
 import cv2
+import numpy as np
+import torch
+from PIL import Image
 
 from autotimm.interpretation.base import BaseInterpreter
 
@@ -44,9 +45,7 @@ class IntegratedGradients(BaseInterpreter):
     def __init__(
         self,
         model: torch.nn.Module,
-        baseline: Union[
-            Literal["black", "white", "blur", "random"], torch.Tensor
-        ] = "black",
+        baseline: Literal["black", "white", "blur", "random"] | torch.Tensor = "black",
         steps: int = 50,
         use_cuda: bool = True,
     ):
@@ -118,8 +117,8 @@ class IntegratedGradients(BaseInterpreter):
 
     def explain(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
         normalize: bool = True,
     ) -> np.ndarray:
         """
@@ -218,8 +217,8 @@ class IntegratedGradients(BaseInterpreter):
     def visualize_polarity(
         self,
         attribution: np.ndarray,
-        image: Union[Image.Image, np.ndarray],
-        save_path: Optional[str] = None,
+        image: Image.Image | np.ndarray,
+        save_path: str | None = None,
     ):
         """
         Visualize positive and negative attributions separately.
@@ -281,9 +280,9 @@ class IntegratedGradients(BaseInterpreter):
 
     def get_completeness_score(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
+        image: Image.Image | np.ndarray | torch.Tensor,
         attribution: np.ndarray,
-        target_class: Optional[int] = None,
+        target_class: int | None = None,
     ) -> float:
         """
         Compute completeness score (attribution sum vs score difference).
@@ -379,8 +378,8 @@ class SmoothGrad:
 
     def __call__(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
         **kwargs,
     ) -> np.ndarray:
         """
@@ -398,8 +397,8 @@ class SmoothGrad:
 
     def explain(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
         **kwargs,
     ) -> np.ndarray:
         """

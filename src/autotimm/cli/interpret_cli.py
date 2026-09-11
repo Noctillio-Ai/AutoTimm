@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import sys
+
 import torch
 from PIL import Image
 
@@ -134,12 +135,12 @@ def _is_vit(model) -> bool:
 def _run_method(model, image: Image.Image, method_id: str, output_dir: str):
     """Run a single interpretation method and save the result."""
     from autotimm.interpretation import (
+        AttentionFlow,
+        AttentionRollout,
         GradCAM,
         GradCAMPlusPlus,
         IntegratedGradients,
         SmoothGrad,
-        AttentionRollout,
-        AttentionFlow,
     )
     from autotimm.interpretation.visualization.heatmap import (
         save_heatmap,

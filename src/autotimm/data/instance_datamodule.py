@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import pytorch_lightning as pl
-import torch.nn as nn
+from torch import nn
 from torch.utils.data import DataLoader
 
 from autotimm.data.instance_dataset import (

@@ -11,10 +11,10 @@ from typing import Any
 import pytorch_lightning as pl
 from pytorch_lightning.tuner import Tuner
 
+from autotimm.callbacks.json_progress import JsonProgressCallback, _emit
 from autotimm.core.loggers import LoggerConfig, LoggerManager
 from autotimm.core.logging import logger
 from autotimm.core.utils import seed_everything
-from autotimm.callbacks.json_progress import JsonProgressCallback, _emit
 
 
 def _ensure_safe_multiprocessing() -> None:
@@ -256,7 +256,7 @@ class AutoTrainer(pl.Trainer):
         default_root_dir: str = ".",
         gradient_clip_val: float | None = None,
         accumulate_grad_batches: int = 1,
-        val_check_interval: float | int = 1.0,
+        val_check_interval: float = 1.0,
         enable_checkpointing: bool = True,
         fast_dev_run: bool | int = False,
         seed: int | None = None,

@@ -1,14 +1,15 @@
 """PyTorch Lightning callbacks for automatic interpretation during training."""
 
-from typing import Optional, List, Union, Literal
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import Callback
-import torch
-import numpy as np
+from typing import Literal
 
+import numpy as np
+import pytorch_lightning as pl
+import torch
+from pytorch_lightning.callbacks import Callback
+
+from autotimm.core.logging import logger
 from autotimm.interpretation.gradcam import GradCAM
 from autotimm.interpretation.integrated_gradients import IntegratedGradients
-from autotimm.core.logging import logger
 
 
 class InterpretationCallback(Callback):
@@ -56,12 +57,12 @@ class InterpretationCallback(Callback):
 
     def __init__(
         self,
-        sample_images: Union[torch.Tensor, List[torch.Tensor], List[str]],
-        sample_labels: Optional[List[int]] = None,
+        sample_images: torch.Tensor | list[torch.Tensor] | list[str],
+        sample_labels: list[int] | None = None,
         method: Literal["gradcam", "gradcam++", "integrated_gradients"] = "gradcam",
-        target_layer: Optional[Union[str, torch.nn.Module]] = None,
+        target_layer: str | torch.nn.Module | None = None,
         log_every_n_epochs: int = 5,
-        log_every_n_steps: Optional[int] = None,
+        log_every_n_steps: int | None = None,
         num_samples: int = 8,
         colormap: str = "viridis",
         alpha: float = 0.4,
@@ -82,14 +83,14 @@ class InterpretationCallback(Callback):
 
     def _prepare_images(
         self,
-        images: Union[torch.Tensor, List[torch.Tensor], List[str]],
+        images: torch.Tensor | list[torch.Tensor] | list[str],
         num_samples: int,
-    ) -> List[torch.Tensor]:
+    ) -> list[torch.Tensor]:
         """Prepare and sample images."""
         # Load images if paths
         if isinstance(images, list) and len(images) > 0 and isinstance(images[0], str):
-            from PIL import Image
             import torchvision.transforms as T
+            from PIL import Image
 
             transform = T.Compose([T.ToTensor()])
             images = [transform(Image.open(img).convert("RGB")) for img in images]
@@ -213,7 +214,7 @@ class InterpretationCallback(Callback):
     def _log_visualizations(
         self,
         trainer: pl.Trainer,
-        visualizations: List[np.ndarray],
+        visualizations: list[np.ndarray],
     ):
         """Log visualizations to available loggers."""
         epoch = trainer.current_epoch
@@ -229,7 +230,7 @@ class InterpretationCallback(Callback):
             elif "mlflow" in logger_name:
                 self._log_to_mlflow(log, visualizations, epoch, step)
 
-    def _log_to_tensorboard(self, logger, visualizations: List[np.ndarray], step: int):
+    def _log_to_tensorboard(self, logger, visualizations: list[np.ndarray], step: int):
         """Log to TensorBoard."""
         try:
             writer = logger.experiment
@@ -246,7 +247,7 @@ class InterpretationCallback(Callback):
             logger.warning(f"Failed to log to TensorBoard: {e}")
 
     def _log_to_wandb(
-        self, logger, visualizations: List[np.ndarray], epoch: int, step: int
+        self, logger, visualizations: list[np.ndarray], epoch: int, step: int
     ):
         """Log to Weights & Biases."""
         try:
@@ -264,13 +265,14 @@ class InterpretationCallback(Callback):
             logger.warning(f"Failed to log to W&B: {e}")
 
     def _log_to_mlflow(
-        self, logger, visualizations: List[np.ndarray], epoch: int, step: int
+        self, logger, visualizations: list[np.ndarray], epoch: int, step: int
     ):
         """Log to MLflow."""
         try:
-            from PIL import Image
             import tempfile
+
             import mlflow
+            from PIL import Image
 
             for idx, viz in enumerate(visualizations):
                 with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
@@ -304,7 +306,7 @@ class FeatureMonitorCallback(Callback):
 
     def __init__(
         self,
-        layer_names: List[str],
+        layer_names: list[str],
         log_every_n_epochs: int = 1,
         num_batches: int = 10,
     ):
@@ -401,6 +403,6 @@ class FeatureMonitorCallback(Callback):
 
 
 __all__ = [
-    "InterpretationCallback",
     "FeatureMonitorCallback",
+    "InterpretationCallback",
 ]

@@ -11,17 +11,17 @@ from typing import Any
 
 import pytorch_lightning as pl
 import torch
-import torch.nn as nn
-import torchvision.ops as ops
+from torch import nn
+from torchvision import ops
 
+from autotimm.core.metrics import LoggingConfig, MetricConfig, MetricManager
+from autotimm.core.utils import seed_everything
 from autotimm.data.transform_config import TransformConfig
 from autotimm.heads import YOLOXHead
 from autotimm.losses import FocalLoss, GIoULoss
-from autotimm.core.metrics import LoggingConfig, MetricConfig, MetricManager
 from autotimm.models.csp_darknet import build_csp_darknet
 from autotimm.models.yolox_pafpn import build_yolox_pafpn
 from autotimm.tasks.preprocessing_mixin import PreprocessingMixin
-from autotimm.core.utils import seed_everything
 
 
 class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
@@ -132,7 +132,9 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
         self.hparams.update(
             {
                 "username": getpass.getuser(),
-                "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
+                "timestamp": _dt.datetime.now()
+                .astimezone()
+                .isoformat(timespec="seconds"),
             }
         )
 
@@ -571,7 +573,7 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
         ]
 
         # Update metrics
-        for name, metric in self.val_metrics.items():
+        for metric in self.val_metrics.values():
             metric.update(predictions, targets)
 
     def on_validation_epoch_end(self) -> None:
@@ -600,7 +602,7 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
             for boxes, labels in zip(batch["boxes"], batch["labels"])
         ]
 
-        for name, metric in self.test_metrics.items():
+        for metric in self.test_metrics.values():
             metric.update(predictions, targets)
 
     def on_test_epoch_end(self) -> None:

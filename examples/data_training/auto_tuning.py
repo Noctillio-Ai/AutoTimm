@@ -49,7 +49,7 @@ def main():
     metric_manager = MetricManager(configs=metric_configs, num_classes=10)
 
     # Model - lr here is the initial value (will be overridden by LR finder)
-    model = ImageClassifier(  # noqa: F841
+    model = ImageClassifier(
         backbone="resnet18",
         num_classes=10,
         metrics=metric_manager,
@@ -68,7 +68,7 @@ def main():
     print("Option 1: Learning Rate Finding")
     print("=" * 60)
 
-    trainer_lr = AutoTrainer(  # noqa: F841
+    trainer_lr = AutoTrainer(
         max_epochs=10,
         accelerator="auto",
         logger=[
@@ -103,7 +103,7 @@ def main():
     print("=" * 60)
 
     # Reset model for fresh training
-    model2 = ImageClassifier(  # noqa: F841
+    model2 = ImageClassifier(
         backbone="resnet18",
         num_classes=10,
         metrics=metric_manager,
@@ -111,7 +111,7 @@ def main():
         scheduler="cosine",
     )
 
-    trainer_bs = AutoTrainer(  # noqa: F841
+    trainer_bs = AutoTrainer(
         max_epochs=10,
         accelerator="auto",
         logger=[

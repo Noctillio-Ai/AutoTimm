@@ -1,8 +1,8 @@
 """Loss functions for semantic and instance segmentation tasks."""
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 
 class DiceLoss(nn.Module):
@@ -122,7 +122,7 @@ class FocalLossPixelwise(nn.Module):
         probs = F.softmax(logits, dim=1)  # [B, C, H, W]
 
         # Flatten
-        B, C, H, W = logits.shape
+        _B, C, _H, _W = logits.shape
         logits = logits.permute(0, 2, 3, 1).reshape(-1, C)  # [B*H*W, C]
         targets = targets.reshape(-1)  # [B*H*W]
         probs = probs.permute(0, 2, 3, 1).reshape(-1, C)  # [B*H*W, C]

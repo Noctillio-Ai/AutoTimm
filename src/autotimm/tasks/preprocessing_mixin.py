@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Union
+from typing import Any
 
 import torch
 from PIL import Image
@@ -108,7 +108,7 @@ class PreprocessingMixin:
 
     def preprocess(
         self,
-        images: Union[Image.Image, list[Image.Image], torch.Tensor],
+        images: Image.Image | list[Image.Image] | torch.Tensor,
         is_train: bool = False,
     ) -> torch.Tensor:
         """Preprocess raw images for model inference.

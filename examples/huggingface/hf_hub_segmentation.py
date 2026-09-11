@@ -13,8 +13,8 @@ import autotimm as at  # recommended alias
 from autotimm import (
     AutoTrainer,
     MetricConfig,
-    SemanticSegmentor,
     SegmentationDataModule,
+    SemanticSegmentor,
     list_hf_hub_backbones,
 )
 

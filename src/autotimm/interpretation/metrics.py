@@ -7,11 +7,10 @@ This module provides metrics to evaluate the quality of explanation methods:
 - Sanity checks: Does the method behave reasonably?
 """
 
-from typing import Optional, Union, Dict, List
 import numpy as np
 import torch
-import torch.nn as nn
 from PIL import Image
+from torch import nn
 
 from autotimm.core.logging import logger
 
@@ -59,11 +58,11 @@ class ExplanationMetrics:
 
     def deletion(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
         steps: int = 50,
         baseline: str = "blur",
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Deletion metric: progressively delete most important pixels.
 
@@ -129,7 +128,7 @@ class ExplanationMetrics:
                 output = self.model(modified)
                 if isinstance(output, dict):
                     output = output.get(
-                        "logits", output.get("output", list(output.values())[0])
+                        "logits", output.get("output", next(iter(output.values())))
                     )
                 probs = torch.softmax(output, dim=1)
                 score = probs[0, target_class].item()
@@ -154,11 +153,11 @@ class ExplanationMetrics:
 
     def insertion(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
         steps: int = 50,
         baseline: str = "blur",
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Insertion metric: progressively insert most important pixels.
 
@@ -203,7 +202,7 @@ class ExplanationMetrics:
             output = self.model(baseline_tensor)
             if isinstance(output, dict):
                 output = output.get(
-                    "logits", output.get("output", list(output.values())[0])
+                    "logits", output.get("output", next(iter(output.values())))
                 )
             probs = torch.softmax(output, dim=1)
             baseline_score = probs[0, target_class].item()
@@ -234,7 +233,7 @@ class ExplanationMetrics:
                 output = self.model(modified)
                 if isinstance(output, dict):
                     output = output.get(
-                        "logits", output.get("output", list(output.values())[0])
+                        "logits", output.get("output", next(iter(output.values())))
                     )
                 probs = torch.softmax(output, dim=1)
                 score = probs[0, target_class].item()
@@ -268,11 +267,11 @@ class ExplanationMetrics:
 
     def sensitivity_n(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
         n_samples: int = 50,
         noise_level: float = 0.15,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Sensitivity-n metric: explanation stability under input perturbations.
 
@@ -335,9 +334,9 @@ class ExplanationMetrics:
 
     def model_parameter_randomization_test(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
-    ) -> Dict[str, float]:
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
+    ) -> dict[str, float]:
         """
         Sanity check: explanation should change significantly if model is randomized.
 
@@ -409,9 +408,9 @@ class ExplanationMetrics:
 
     def data_randomization_test(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
-    ) -> Dict[str, float]:
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
+    ) -> dict[str, float]:
         """
         Sanity check: explanation should change significantly if input is randomized.
 
@@ -468,10 +467,10 @@ class ExplanationMetrics:
 
     def pointing_game(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        bbox: List[float],
-        target_class: Optional[int] = None,
-    ) -> Dict[str, bool]:
+        image: Image.Image | np.ndarray | torch.Tensor,
+        bbox: list[float],
+        target_class: int | None = None,
+    ) -> dict[str, bool]:
         """
         Pointing game: does the max attention fall within the object bbox?
 
@@ -523,10 +522,10 @@ class ExplanationMetrics:
 
     def evaluate_all(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
-        bbox: Optional[List[float]] = None,
-    ) -> Dict[str, Dict]:
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
+        bbox: list[float] | None = None,
+    ) -> dict[str, dict]:
         """
         Run all applicable metrics on an image.
 
@@ -579,7 +578,7 @@ class ExplanationMetrics:
     # Helper methods
 
     def _preprocess_image(
-        self, image: Union[Image.Image, np.ndarray, torch.Tensor]
+        self, image: Image.Image | np.ndarray | torch.Tensor
     ) -> torch.Tensor:
         """Preprocess image to tensor."""
         if isinstance(image, torch.Tensor):
@@ -601,14 +600,14 @@ class ExplanationMetrics:
         return tensor.to(self.device)
 
     def _get_prediction(
-        self, input_tensor: torch.Tensor, target_class: Optional[int] = None
+        self, input_tensor: torch.Tensor, target_class: int | None = None
     ):
         """Get model prediction."""
         with torch.no_grad():
             output = self.model(input_tensor)
             if isinstance(output, dict):
                 output = output.get(
-                    "logits", output.get("output", list(output.values())[0])
+                    "logits", output.get("output", next(iter(output.values())))
                 )
             probs = torch.softmax(output, dim=1)
 
@@ -653,7 +652,7 @@ class ExplanationMetrics:
                 output = self.model(dummy_input)
                 if isinstance(output, dict):
                     output = output.get(
-                        "logits", output.get("output", list(output.values())[0])
+                        "logits", output.get("output", next(iter(output.values())))
                     )
                 return output.shape[1]
         except Exception:

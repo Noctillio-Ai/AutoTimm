@@ -1,12 +1,11 @@
 """Feature map visualization and analysis."""
 
-from typing import Optional, Union, List, Dict, Tuple
-import torch
-import torch.nn as nn
-import numpy as np
-from PIL import Image
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
+import numpy as np
+import torch
+from matplotlib import gridspec
+from PIL import Image
+from torch import nn
 
 
 class FeatureVisualizer:
@@ -52,12 +51,12 @@ class FeatureVisualizer:
 
     def plot_feature_maps(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
+        image: Image.Image | np.ndarray | torch.Tensor,
         layer_name: str,
         num_features: int = 16,
         sort_by: str = "activation",
-        save_path: Optional[str] = None,
-        figsize: Optional[Tuple[int, int]] = None,
+        save_path: str | None = None,
+        figsize: tuple[int, int] | None = None,
     ) -> plt.Figure:
         """
         Plot feature maps from a specific layer.
@@ -119,7 +118,7 @@ class FeatureVisualizer:
                 f"{mean_act:.2f}",
                 transform=ax.transAxes,
                 verticalalignment="top",
-                bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
+                bbox={"boxstyle": "round", "facecolor": "white", "alpha": 0.7},
                 fontsize=8,
             )
 
@@ -132,7 +131,7 @@ class FeatureVisualizer:
 
     def get_features(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
+        image: Image.Image | np.ndarray | torch.Tensor,
         layer_name: str,
     ) -> torch.Tensor:
         """
@@ -170,9 +169,9 @@ class FeatureVisualizer:
 
     def get_feature_statistics(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
+        image: Image.Image | np.ndarray | torch.Tensor,
         layer_name: str,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Compute feature statistics for a layer.
 
@@ -209,10 +208,10 @@ class FeatureVisualizer:
 
     def compare_layers(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        layer_names: List[str],
-        save_path: Optional[str] = None,
-    ) -> Dict[str, Dict[str, float]]:
+        image: Image.Image | np.ndarray | torch.Tensor,
+        layer_names: list[str],
+        save_path: str | None = None,
+    ) -> dict[str, dict[str, float]]:
         """
         Compare feature statistics across multiple layers.
 
@@ -244,7 +243,7 @@ class FeatureVisualizer:
 
     def _plot_layer_comparison(
         self,
-        all_stats: Dict[str, Dict[str, float]],
+        all_stats: dict[str, dict[str, float]],
         save_path: str,
     ):
         """Plot comparison of layer statistics."""
@@ -277,10 +276,10 @@ class FeatureVisualizer:
 
     def get_top_activating_features(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
+        image: Image.Image | np.ndarray | torch.Tensor,
         layer_name: str,
         top_k: int = 10,
-    ) -> List[Tuple[int, float]]:
+    ) -> list[tuple[int, float]]:
         """
         Get channels with highest mean activation.
 
@@ -313,11 +312,11 @@ class FeatureVisualizer:
 
     def visualize_receptive_field(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
+        image: Image.Image | np.ndarray | torch.Tensor,
         layer_name: str,
         channel: int,
-        position: Optional[Tuple[int, int]] = None,
-        save_path: Optional[str] = None,
+        position: tuple[int, int] | None = None,
+        save_path: str | None = None,
     ) -> np.ndarray:
         """
         Approximate receptive field visualization using occlusion.
@@ -415,7 +414,7 @@ class FeatureVisualizer:
         features: torch.Tensor,
         num_features: int,
         sort_by: str,
-    ) -> List[int]:
+    ) -> list[int]:
         """Select which features to display."""
         num_channels = features.shape[1]
 
@@ -439,7 +438,7 @@ class FeatureVisualizer:
         else:
             raise ValueError(f"Unknown sort_by: {sort_by}")
 
-    def _get_layer_by_name(self, name: str) -> Optional[nn.Module]:
+    def _get_layer_by_name(self, name: str) -> nn.Module | None:
         """Get layer by name."""
         try:
             parts = name.split(".")
@@ -451,7 +450,7 @@ class FeatureVisualizer:
             return None
 
     def _preprocess_image(
-        self, image: Union[Image.Image, np.ndarray, torch.Tensor]
+        self, image: Image.Image | np.ndarray | torch.Tensor
     ) -> torch.Tensor:
         """Preprocess image to tensor."""
         if isinstance(image, torch.Tensor):

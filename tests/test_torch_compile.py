@@ -17,6 +17,7 @@ import sys
 
 import pytest
 import torch
+
 from autotimm import ImageClassifier, ObjectDetector, SemanticSegmentor
 
 # Check PyTorch version

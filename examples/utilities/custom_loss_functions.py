@@ -7,10 +7,9 @@ This example demonstrates:
 """
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from autotimm import (
-    AutoTrainer,
     ImageClassifier,
     SemanticSegmentor,
 )
@@ -23,7 +22,7 @@ def example_1_list_and_use_built_in_losses():
     print("Example 1: Built-in Losses")
     print("=" * 70)
 
-    #List all available losses
+    # List all available losses
     print("\nAvailable losses:")
     print(list_available_losses())
 
@@ -72,7 +71,7 @@ def example_2_custom_weighted_loss():
         compile_model=False,
     )
 
-    print(f"✓ Created model with custom weighted loss")
+    print("✓ Created model with custom weighted loss")
     print(f"  Class weights: {class_weights.tolist()}")
     print(f"  Loss type: {type(model.criterion)}")
 
@@ -149,7 +148,7 @@ def example_3_focal_tversky_loss():
         compile_model=False,
     )
 
-    print(f"✓ Created model with Focal-Tversky loss")
+    print("✓ Created model with Focal-Tversky loss")
     print(f"  Alpha (FN weight): {ft_loss.alpha}")
     print(f"  Beta (FP weight): {ft_loss.beta}")
     print(f"  Gamma (focal): {ft_loss.gamma}")
@@ -187,9 +186,7 @@ def example_5_loss_with_parameters():
     registry = get_loss_registry()
 
     # Create Dice loss with custom parameters
-    dice_loss = registry.get_loss(
-        "dice", num_classes=19, smooth=2.0, ignore_index=255
-    )
+    dice_loss = registry.get_loss("dice", num_classes=19, smooth=2.0, ignore_index=255)
 
     # Create Combined loss with custom weights
     combined_loss = registry.get_loss(

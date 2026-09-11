@@ -9,7 +9,7 @@ from typing import Any
 
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 def seed_everything(seed: int = 42, deterministic: bool = False) -> int:
@@ -135,6 +135,7 @@ def list_optimizers(include_timm: bool = True) -> dict[str, list[str]]:
         ['adabelief', 'adafactor', 'adahessian', 'adamp', ...]
     """
     import inspect
+
     import torch.optim as torch_optim
 
     # Dynamically discover PyTorch optimizers
@@ -193,6 +194,7 @@ def list_schedulers(include_timm: bool = True) -> dict[str, list[str]]:
         ['cosinelrscheduler', 'multisteplrscheduler', ...]
     """
     import inspect
+
     import torch.optim.lr_scheduler as torch_scheduler
 
     # Classes to exclude (not actual schedulers)

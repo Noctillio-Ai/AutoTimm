@@ -8,16 +8,17 @@ Demonstrates performance optimization techniques for model interpretations:
 - Model optimization for inference
 """
 
+import time
+
+import numpy as np
 import torch
 from PIL import Image
-import numpy as np
-import time
 
 from autotimm import ImageClassifier
 from autotimm.interpretation import GradCAM
 from autotimm.interpretation.optimization import (
-    ExplanationCache,
     BatchProcessor,
+    ExplanationCache,
     PerformanceProfiler,
     optimize_for_inference,
 )
@@ -153,10 +154,9 @@ def example_3_profiling():
             tensor = torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0
             tensor = tensor.unsqueeze(0)
 
-        with profiler.profile("forward_pass"):
+        with profiler.profile("forward_pass"), torch.inference_mode():
             # Forward pass
-            with torch.inference_mode():
-                model(tensor)
+            model(tensor)
 
         with profiler.profile("explanation"):
             # Generate explanation

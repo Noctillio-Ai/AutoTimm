@@ -1,33 +1,34 @@
 """High-level API for model interpretation."""
 
-from typing import Optional, Union, List, Dict, Any
 from pathlib import Path
-import torch
-import torch.nn as nn
-from PIL import Image
+from typing import Any
+
 import numpy as np
+import torch
+from PIL import Image
+from torch import nn
 
 from autotimm.interpretation.gradcam import GradCAM, GradCAMPlusPlus
 from autotimm.interpretation.integrated_gradients import IntegratedGradients
 from autotimm.interpretation.visualization.heatmap import (
-    save_heatmap,
     create_comparison_figure,
+    save_heatmap,
 )
 
 
 def explain_prediction(
     model: nn.Module,
-    image: Union[str, Path, Image.Image, np.ndarray],
+    image: str | Path | Image.Image | np.ndarray,
     method: str = "gradcam",
-    target_class: Optional[int] = None,
-    target_layer: Optional[Union[str, nn.Module]] = None,
+    target_class: int | None = None,
+    target_layer: str | nn.Module | None = None,
     colormap: str = "viridis",
     alpha: float = 0.4,
-    save_path: Optional[Union[str, Path]] = None,
+    save_path: str | Path | None = None,
     show_original: bool = True,
     dpi: int = 100,
     return_heatmap: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Explain a model's prediction on a single image.
 
@@ -128,14 +129,14 @@ def explain_prediction(
 
 def compare_methods(
     model: nn.Module,
-    image: Union[str, Path, Image.Image, np.ndarray],
-    methods: List[str] = ["gradcam", "gradcam++"],
-    target_class: Optional[int] = None,
-    target_layer: Optional[Union[str, nn.Module]] = None,
+    image: str | Path | Image.Image | np.ndarray,
+    methods: list[str] | None = None,
+    target_class: int | None = None,
+    target_layer: str | nn.Module | None = None,
     layout: str = "horizontal",
     colormap: str = "viridis",
     alpha: float = 0.4,
-    save_path: Optional[Union[str, Path]] = None,
+    save_path: str | Path | None = None,
     dpi: int = 100,
 ):
     """
@@ -164,6 +165,8 @@ def compare_methods(
         ... )
     """
     # Load image if path
+    if methods is None:
+        methods = ["gradcam", "gradcam++"]
     if isinstance(image, (str, Path)):
         image = Image.open(image).convert("RGB")
 
@@ -209,16 +212,16 @@ def compare_methods(
 
 def visualize_batch(
     model: nn.Module,
-    images: List[Union[str, Path, Image.Image, np.ndarray]],
+    images: list[str | Path | Image.Image | np.ndarray],
     method: str = "gradcam",
-    target_classes: Optional[List[int]] = None,
-    target_layer: Optional[Union[str, nn.Module]] = None,
-    output_dir: Optional[Union[str, Path]] = None,
+    target_classes: list[int] | None = None,
+    target_layer: str | nn.Module | None = None,
+    output_dir: str | Path | None = None,
     colormap: str = "viridis",
     alpha: float = 0.4,
     dpi: int = 100,
     show_predictions: bool = True,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Generate explanations for a batch of images.
 
@@ -311,9 +314,9 @@ def visualize_batch(
 # Convenience function for common use case
 def quick_explain(
     model: nn.Module,
-    image: Union[str, Path, Image.Image, np.ndarray],
-    save_path: Union[str, Path] = "explanation.png",
-) -> Dict[str, Any]:
+    image: str | Path | Image.Image | np.ndarray,
+    save_path: str | Path = "explanation.png",
+) -> dict[str, Any]:
     """
     Quick explanation with sensible defaults.
 
@@ -346,8 +349,8 @@ def quick_explain(
 
 
 __all__ = [
-    "explain_prediction",
     "compare_methods",
-    "visualize_batch",
+    "explain_prediction",
     "quick_explain",
+    "visualize_batch",
 ]

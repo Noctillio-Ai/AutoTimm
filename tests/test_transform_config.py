@@ -5,13 +5,13 @@ import pytest
 import torch
 from PIL import Image
 
+from autotimm.core.metrics import MetricConfig
 from autotimm.data.timm_transforms import (
     create_inference_transform,
     get_transforms_from_backbone,
     resolve_backbone_data_config,
 )
 from autotimm.data.transform_config import TransformConfig
-from autotimm.core.metrics import MetricConfig
 from autotimm.tasks.classification import ImageClassifier
 
 
@@ -27,8 +27,10 @@ class TestTransformConfig:
         assert config.use_timm_config is True
         assert config.mean is None
         assert config.std is None
-        assert config.interpolation == "bicubic"
-        assert config.crop_pct == 0.875
+        # None means "use the model's pretrained value" (falls back to
+        # bicubic / 0.875 when no model config is available)
+        assert config.interpolation is None
+        assert config.crop_pct is None
 
     def test_custom_values(self):
         """Test custom configuration values."""

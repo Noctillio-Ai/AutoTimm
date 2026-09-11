@@ -1,12 +1,12 @@
 """Tests for explanation quality metrics."""
 
+import numpy as np
 import pytest
 import torch
-import torch.nn as nn
-import numpy as np
 from PIL import Image
+from torch import nn
 
-from autotimm.interpretation import GradCAM, ExplanationMetrics
+from autotimm.interpretation import ExplanationMetrics, GradCAM
 
 
 # Set random seeds for reproducibility

@@ -22,7 +22,6 @@ from autotimm import (
     AutoTrainer,
     InstanceSegmentationDataModule,
     InstanceSegmentor,
-    MetricConfig,
 )
 
 

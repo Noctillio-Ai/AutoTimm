@@ -25,8 +25,8 @@ from autotimm import (
     LoggerConfig,
     LoggingConfig,
     MetricConfig,
-    SemanticSegmentor,
     SegmentationDataModule,
+    SemanticSegmentor,
 )
 
 

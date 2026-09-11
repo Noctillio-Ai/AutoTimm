@@ -1,9 +1,8 @@
 """GradCAM and GradCAM++ implementations."""
 
-from typing import Optional, Union, List
+import numpy as np
 import torch
 import torch.nn.functional as F
-import numpy as np
 from PIL import Image
 
 from autotimm.interpretation.base import BaseInterpreter
@@ -38,15 +37,15 @@ class GradCAM(BaseInterpreter):
     def __init__(
         self,
         model: torch.nn.Module,
-        target_layer: Optional[Union[str, torch.nn.Module]] = None,
+        target_layer: str | torch.nn.Module | None = None,
         use_cuda: bool = True,
     ):
         super().__init__(model, target_layer, use_cuda)
 
     def explain(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
         normalize: bool = True,
     ) -> np.ndarray:
         """
@@ -127,9 +126,9 @@ class GradCAM(BaseInterpreter):
 
     def explain_batch(
         self,
-        images: List[Union[Image.Image, np.ndarray, torch.Tensor]],
-        target_classes: Optional[List[int]] = None,
-    ) -> List[np.ndarray]:
+        images: list[Image.Image | np.ndarray | torch.Tensor],
+        target_classes: list[int] | None = None,
+    ) -> list[np.ndarray]:
         """
         Generate GradCAM heatmaps for a batch of images.
 
@@ -180,15 +179,15 @@ class GradCAMPlusPlus(GradCAM):
     def __init__(
         self,
         model: torch.nn.Module,
-        target_layer: Optional[Union[str, torch.nn.Module]] = None,
+        target_layer: str | torch.nn.Module | None = None,
         use_cuda: bool = True,
     ):
         super().__init__(model, target_layer, use_cuda)
 
     def explain(
         self,
-        image: Union[Image.Image, np.ndarray, torch.Tensor],
-        target_class: Optional[int] = None,
+        image: Image.Image | np.ndarray | torch.Tensor,
+        target_class: int | None = None,
         normalize: bool = True,
     ) -> np.ndarray:
         """

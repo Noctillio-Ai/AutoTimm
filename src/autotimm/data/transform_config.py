@@ -110,7 +110,7 @@ class TransformConfig:
         if self.std is not None and len(self.std) != 3:
             raise ValueError(f"std must have 3 values, got {len(self.std)}")
 
-    def with_overrides(self, **kwargs: object) -> "TransformConfig":
+    def with_overrides(self, **kwargs: object) -> TransformConfig:
         """Create a new TransformConfig with specified overrides.
 
         Args:

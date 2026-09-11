@@ -5,6 +5,7 @@ The exported model can be loaded and used in C++ applications without Python.
 """
 
 import torch
+
 from autotimm import ImageClassifier, export_to_torchscript
 
 
@@ -35,7 +36,7 @@ def export_for_cpp():
     print("C++ Deployment Code")
     print("=" * 70)
 
-    cpp_code = '''
+    cpp_code = """
 // File: inference.cpp
 // Compile: g++ -std=c++17 inference.cpp -o inference \\
 //          `pkg-config --cflags --libs opencv4` \\
@@ -155,7 +156,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 }
-'''
+"""
 
     print(cpp_code)
 
@@ -191,7 +192,7 @@ int main(int argc, char* argv[]) {
     print("CMakeLists.txt Example")
     print("=" * 70)
 
-    cmake_code = '''
+    cmake_code = """
 cmake_minimum_required(VERSION 3.18)
 project(autotimm_inference)
 
@@ -209,7 +210,7 @@ add_executable(inference inference.cpp)
 
 # Link libraries
 target_link_libraries(inference ${TORCH_LIBRARIES} ${OpenCV_LIBS})
-'''
+"""
 
     print(cmake_code)
 

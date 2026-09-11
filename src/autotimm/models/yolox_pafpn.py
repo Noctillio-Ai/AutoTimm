@@ -7,7 +7,7 @@ https://github.com/Megvii-BaseDetection/YOLOX
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from autotimm.models.csp_darknet import BaseConv, CSPLayer, DWConv
 

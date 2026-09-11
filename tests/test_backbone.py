@@ -1,7 +1,7 @@
 """Tests for backbone creation and discovery."""
 
 import pytest
-import torch.nn as nn
+from torch import nn
 
 from autotimm.core.backbone import (
     BackboneConfig,

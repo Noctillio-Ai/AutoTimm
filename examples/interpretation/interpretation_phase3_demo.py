@@ -5,14 +5,14 @@ Demonstrates AutoTrainer integration, feature visualization, and
 production-ready interpretation workflows.
 """
 
-from PIL import Image
 import numpy as np
+from PIL import Image
 
-from autotimm import ImageClassifier, LoggerConfig
+from autotimm import ImageClassifier
 from autotimm.interpretation import (
-    InterpretationCallback,
     FeatureMonitorCallback,
     FeatureVisualizer,
+    InterpretationCallback,
 )
 
 
@@ -60,6 +60,8 @@ def example_1_autotrainer_integration():
 
     # Example trainer setup (would use in actual training)
     """
+    from autotimm import AutoTrainer, LoggerConfig
+
     trainer = AutoTrainer(
         max_epochs=100,
         callbacks=[interp_callback, feature_callback],

@@ -106,10 +106,9 @@ def push(cfg: dict) -> dict:
                     if k not in sensitive
                     and not (isinstance(v, str) and ("/" in v or "\\" in v))
                 }
-            _tmp = tempfile.NamedTemporaryFile(suffix=".ckpt", delete=False)
-            torch.save(cleaned, _tmp.name)
-            _tmp.close()
-            clean_ckpt = _tmp.name
+            with tempfile.NamedTemporaryFile(suffix=".ckpt", delete=False) as _tmp:
+                clean_ckpt = _tmp.name
+            torch.save(cleaned, clean_ckpt)
     except Exception:
         clean_ckpt = None
 
@@ -205,11 +204,10 @@ Trained with PyTorch Lightning + timm via AutoTimm.
                     if k not in sensitive
                     and not (isinstance(v, str) and (os.sep in v or "/" in v))
                 }
-                _htmp = tempfile.NamedTemporaryFile(
+                with tempfile.NamedTemporaryFile(
                     mode="w", suffix=".yaml", delete=False
-                )
-                yaml.dump(hp, _htmp, default_flow_style=False)
-                _htmp.close()
+                ) as _htmp:
+                    yaml.dump(hp, _htmp, default_flow_style=False)
                 clean_hparams_path = _htmp.name
         except Exception:
             pass
@@ -231,9 +229,8 @@ Trained with PyTorch Lightning + timm via AutoTimm.
                 token=token,
             )
 
-        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False)
-        tmp.write(model_card)
-        tmp.close()
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as tmp:
+            tmp.write(model_card)
         api.upload_file(
             path_or_fileobj=tmp.name,
             path_in_repo="README.md",

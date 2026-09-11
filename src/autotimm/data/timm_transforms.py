@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import torch.nn as nn
+from torch import nn
 from torchvision import transforms
 
 from autotimm.data.transform_config import TransformConfig
@@ -66,8 +66,7 @@ def resolve_backbone_data_config(
         try:
             model_name = backbone
             for prefix in ("hf-hub:", "hf_hub:"):
-                if model_name.startswith(prefix):
-                    model_name = model_name[len(prefix) :]
+                model_name = model_name.removeprefix(prefix)
             candidates = [model_name]
             # "timm/resnet50.a1_in1k" hub ids map to plain timm names
             if "/" in model_name:
