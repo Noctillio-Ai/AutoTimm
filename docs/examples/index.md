@@ -132,7 +132,7 @@ graph LR
 |--------|-------------|
 | [`data_training/auto_tuning.py`](utilities/training-utilities.md#auto-tuning) | Automatic LR and batch size finding |
 | [`data_training/multi_gpu_training.py`](utilities/training-utilities.md#multi-gpu-training) | Multi-GPU and distributed training |
-| [`data_training/preset_manager.py`](utilities/training-utilities.md#preset-manager) | Training presets and configurations |
+| [`data_training/preset_manager.py`](utilities/training-utilities.md#transform-backend-recommendation) | Transform backend recommendation and presets |
 | [`data_training/performance_optimization_demo.py`](utilities/training-utilities.md#performance-optimization) | Performance optimization techniques |
 | [`data_training/hf_hyperparameter_tuning.py`](utilities/hf_hyperparameter_tuning.md) | Optuna hyperparameter optimization |
 
