@@ -1,208 +1,113 @@
 ---
 title: AutoTimm - Automated Deep Learning for Computer Vision
-description: Train state-of-the-art image classification, object detection, and segmentation models with 1000+ timm backbones using minimal Python code. Built on PyTorch Lightning.
+description: Train image classification, object detection, and segmentation models with 1000+ timm backbones. A flexible computer vision workflow built on PyTorch Lightning.
+hide:
+  - navigation
+  - toc
 ---
 
-<div align="center">
+<div class="at-home">
 
-<img src="autotimm.png" alt="AutoTimm" width="600" class="animated-logo" />
+<section class="at-hero" aria-labelledby="hero-title">
+<div class="at-hero-copy">
 
-<h3>Automated Deep Learning for Computer Vision</h3>
+<img class="at-floating-logo" src="autotimm.png" alt="AutoTimm" width="1166" height="444" decoding="async">
 
-<p><em>Powered by <a href="https://github.com/huggingface/pytorch-image-models">timm</a> and <a href="https://github.com/Lightning-AI/pytorch-lightning">PyTorch Lightning</a></em></p>
+<p class="at-eyebrow"><span class="at-status" aria-hidden="true"></span> OPEN SOURCE COMPUTER VISION</p>
+<h1 id="hero-title">Your next vision model.<br><span>Less boilerplate.</span></h1>
+<p class="at-lead">Go from dataset to trained model with a few lines of Python. Build on 1000+ backbones, with the flexibility of PyTorch and the structure of Lightning.</p>
 
-<hr/>
-
-<p>Train state-of-the-art vision models with <strong>1000+ backbones</strong> in just a few lines of Python</p>
-
-<div class="getting-started-grid">
-
-<div class="getting-started-card">
-<div class="number">1</div>
-<h3>Install</h3>
-<div class="code-box">pip install autotimm</div>
-<a href="getting-started/installation/">Installation Guide →</a>
+<div class="at-actions">
+<a class="at-button at-button-primary" href="getting-started/quickstart/">Start building <span aria-hidden="true">↗</span></a>
+<a class="at-button at-button-secondary" href="https://github.com/theja-vanka/AutoTimm">View on GitHub <span aria-hidden="true">↗</span></a>
 </div>
 
-<div class="getting-started-card">
-<div class="number">2</div>
-<h3>Quick Start</h3>
-<p>Train your first model in minutes</p>
-<a href="getting-started/quickstart/">Quick Start Guide →</a>
-</div>
+<div class="at-install">
 
-<div class="getting-started-card">
-<div class="number">3</div>
-<h3>Explore</h3>
-<p>Browse examples and dive deeper</p>
-<a href="examples/">View Examples →</a>
-</div>
+```bash
+pip install autotimm
+```
 
 </div>
-
-
-</div>
-
----
-
-## Key Features
-
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 30px 0;">
-
-<div style="padding: 20px; border-left: 4px solid #1976D2;">
-<strong>4 Vision Tasks</strong><br/>
-Image classification, object detection, semantic segmentation, and instance segmentation
-</div>
-
-<div style="padding: 20px; border-left: 4px solid #1565C0;">
-<strong>1000+ Backbones</strong><br/>
-Any timm model: CNNs (ResNet, EfficientNet, ConvNeXt) and Transformers (ViT, Swin, DeiT)
-</div>
-
-<div style="padding: 20px; border-left: 4px solid #0D47A1;">
-<strong>Flexible Architectures</strong><br/>
-Built-in FCOS detector, DeepLabV3+ segmentation, Mask R-CNN style instance segmentation
-</div>
-
-<div style="padding: 20px; border-left: 4px solid #01579B;">
-<strong>Advanced Losses</strong><br/>
-Focal, Dice, Tversky, Combined CE+Dice, GIoU for bbox regression
-</div>
-
-<div style="padding: 20px; border-left: 4px solid #1976D2;">
-<strong>Configurable Metrics</strong><br/>
-Use torchmetrics or custom metrics with full control
-</div>
-
-<div style="padding: 20px; border-left: 4px solid #00838F;">
-<strong>Multiple Loggers</strong><br/>
-TensorBoard, MLflow, W&B, CSV - use them all simultaneously
-</div>
-
-<div style="padding: 20px; border-left: 4px solid #006064;">
-<strong>Auto-Tuning</strong><br/>
-Automatic learning rate and batch size finding
-</div>
-
-<div style="padding: 20px; border-left: 4px solid #1565C0;">
-<strong>Enhanced Logging</strong><br/>
-Track learning rate, gradient norms, confusion matrices and more
-</div>
-
-<div style="padding: 20px; border-left: 4px solid #0277BD;">
-<strong>Flexible Transforms</strong><br/>
-Torchvision (PIL) or albumentations (OpenCV) with bbox and mask support
-</div>
+<p class="at-install-note">Python 3.10+ <span aria-hidden="true">·</span> Apache 2.0 <span aria-hidden="true">·</span> <a href="getting-started/installation/">Installation guide</a></p>
 
 </div>
-
----
-
-## Quick Example
+<div class="at-code-panel">
 
 ```python
-import autotimm as at  # recommended alias
-from autotimm import (
-    AutoTrainer, ImageClassifier, ImageDataModule,
-    LoggerConfig, MetricConfig,
-)
+import autotimm as at
 
-# Data
-data = ImageDataModule(
+# Your data. Your choice of backbone.
+data = at.ImageDataModule(
     data_dir="./data",
     dataset_name="CIFAR10",
-    image_size=224,
-    batch_size=64,
+    num_workers=0,
 )
 
-# Metrics (explicit configuration required)
-metrics = [
-    MetricConfig(
-        name="accuracy",
-        backend="torchmetrics",
-        metric_class="Accuracy",
-        params={"task": "multiclass"},
-        stages=["train", "val", "test"],
-        prog_bar=True,
-    ),
-]
+metrics = [at.MetricConfig(
+    name="accuracy",
+    backend="torchmetrics",
+    metric_class="Accuracy",
+    params={"task": "multiclass"},
+    stages=["train", "val"],
+)]
 
-# Model
-model = ImageClassifier(
+model = at.ImageClassifier(
     backbone="resnet18",
     num_classes=10,
     metrics=metrics,
-    lr=1e-3,
 )
 
-# Trainer with logging
-trainer = AutoTrainer(
-    max_epochs=10,
-    logger=[LoggerConfig(backend="tensorboard", params={"save_dir": "logs"})],
-    checkpoint_monitor="val/accuracy",
-)
-
+trainer = at.AutoTrainer(max_epochs=10)
 trainer.fit(model, datamodule=data)
-trainer.test(model, datamodule=data)
 ```
 
-<div align="center" style="margin: 20px 0;">
-That's it! Train production-ready models in <strong>~20 lines of code</strong>
+</div>
+</section>
+
+<div class="at-foundation">
+<p>BUILT ON THE TOOLS YOU KNOW</p>
+<div><a href="https://pytorch.org/">PyTorch</a><span aria-hidden="true">/</span><a href="https://github.com/huggingface/pytorch-image-models">timm</a><span aria-hidden="true">/</span><a href="https://github.com/Lightning-AI/pytorch-lightning">Lightning</a><span aria-hidden="true">/</span><a href="user-guide/integration/huggingface-hub-integration/">Hugging Face</a></div>
 </div>
 
----
-
-## Why Choose AutoTimm?
-
-<div align="center">
-<table>
-<thead>
-<tr>
-<th>Feature</th>
-<th align="center">AutoTimm</th>
-<th align="center">Raw PyTorch</th>
-<th align="center">Lightning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>1000+ backbones</strong></td>
-<td align="center">Yes</td>
-<td align="center">Manual</td>
-<td align="center">Manual</td>
-</tr>
-<tr>
-<td><strong>Configurable metrics</strong></td>
-<td align="center">Yes</td>
-<td align="center">Manual</td>
-<td align="center">Manual</td>
-</tr>
-<tr>
-<td><strong>Multi-logger support</strong></td>
-<td align="center">Yes</td>
-<td align="center">Manual</td>
-<td align="center">Partial</td>
-</tr>
-<tr>
-<td><strong>Auto LR/batch finding</strong></td>
-<td align="center">Yes</td>
-<td align="center">No</td>
-<td align="center">Yes</td>
-</tr>
-<tr>
-<td><strong>Lines of code</strong></td>
-<td align="center"><strong>~20</strong></td>
-<td align="center">~200+</td>
-<td align="center">~100</td>
-</tr>
-</tbody>
-</table>
+<section class="at-section" aria-labelledby="tasks-title">
+<div class="at-section-heading">
+<div><p class="at-eyebrow">ONE LIBRARY. FOUR VISION TASKS.</p><h2 id="tasks-title">What will you build?</h2></div>
+<p>Choose your task. Keep the same familiar training workflow.</p>
 </div>
+<div class="at-task-grid">
+<a class="at-task" href="examples/tasks/classification/">
+<div class="at-task-top"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="8" y="8" width="32" height="32" rx="5"/><path d="m15 25 6 6 13-14"/></svg><span>01</span></div>
+<h3>Image classification</h3><p>Turn images into labels with pretrained CNNs and vision transformers.</p><span class="at-card-link">Explore classification <span aria-hidden="true">↗</span></span>
+</a>
+<a class="at-task" href="examples/tasks/object-detection/">
+<div class="at-task-top"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M16 6H6v10m26-10h10v10M6 32v10h10m26-10v10H32"/><rect x="15" y="15" width="18" height="18" rx="2"/></svg><span>02</span></div>
+<h3>Object detection</h3><p>Find and localize objects with FCOS and YOLOX detectors.</p><span class="at-card-link">Explore detection <span aria-hidden="true">↗</span></span>
+</a>
+<a class="at-task" href="examples/tasks/semantic-segmentation/">
+<div class="at-task-top"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="7" y="7" width="34" height="34" rx="4"/><path d="M7 27h12V16h12v25M19 27v14M31 24h10"/></svg><span>03</span></div>
+<h3>Semantic segmentation</h3><p>Give every pixel a class with DeepLabV3+ and FCN architectures.</p><span class="at-card-link">Explore segmentation <span aria-hidden="true">↗</span></span>
+</a>
+<a class="at-task" href="examples/tasks/instance-segmentation/">
+<div class="at-task-top"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="6" y="6" width="23" height="23" rx="6"/><rect x="19" y="19" width="23" height="23" rx="6"/></svg><span>04</span></div>
+<h3>Instance segmentation</h3><p>Separate individual objects with detection and per-instance masks.</p><span class="at-card-link">Explore instances <span aria-hidden="true">↗</span></span>
+</a>
+</div>
+</section>
 
----
+<section class="at-capabilities at-section" aria-labelledby="features-title">
+<div class="at-capabilities-intro"><p class="at-eyebrow">LESS SETUP. MORE EXPERIMENTING.</p><h2 id="features-title">The building blocks.<br>Already connected.</h2><p>Spend your time on the model and the data. AutoTimm brings the training essentials together, while keeping you in control.</p><a class="at-text-link" href="user-guide/">Explore the user guide <span aria-hidden="true">→</span></a><div class="at-backbone-stat"><strong>1000<span>+</span></strong><span>backbones from timm</span></div><div class="at-model-tags"><span>ResNet</span><span>EfficientNet</span><span>ConvNeXt</span><span>ViT</span><span>Swin</span></div></div>
+<div class="at-feature-grid">
+<div class="at-feature"><span class="at-feature-number">01 / TRAIN</span><h3>Find your training rhythm</h3><p>Automatic learning rate and batch size finding, mixed precision, and distributed training through Lightning.</p><a href="user-guide/training/training/">Training guide <span aria-hidden="true">↗</span></a></div>
+<div class="at-feature"><span class="at-feature-number">02 / MEASURE</span><h3>Make every run count</h3><p>Configure torchmetrics and track experiments with TensorBoard, MLflow, W&B, or CSV loggers.</p><a href="user-guide/guides/logging/">Logging guide <span aria-hidden="true">↗</span></a></div>
+<div class="at-feature"><span class="at-feature-number">03 / UNDERSTAND</span><h3>Look inside your model</h3><p>Explore predictions with GradCAM, integrated gradients, and interactive visualizations.</p><a href="user-guide/interpretation/">Interpretation guide <span aria-hidden="true">↗</span></a></div>
+<div class="at-feature"><span class="at-feature-number">04 / DEPLOY</span><h3>Take the next step</h3><p>Export trained models with TorchScript or ONNX and bring your work into inference workflows.</p><a href="user-guide/inference/model-export/">Export guide <span aria-hidden="true">↗</span></a></div>
+</div>
+</section>
 
-<div align="center" style="margin: 50px 0;">
-
-<a href="getting-started/installation/" style="padding: 15px 30px; background-color: #1976D2; color: white; text-decoration: none; border-radius: 4px; font-size: 18px; font-weight: bold; display: inline-block; margin: 10px;">Start Now →</a>
+<section class="at-bottom-cta" aria-labelledby="start-title">
+<div><p class="at-eyebrow">FROM IDEA TO FIRST EXPERIMENT</p><h2 id="start-title">Let’s get your model training.</h2><p>Start with the quick start guide, or find an example for your task.</p></div>
+<div class="at-actions"><a class="at-button at-button-primary" href="getting-started/quickstart/">Get started <span aria-hidden="true">↗</span></a><a class="at-text-link" href="examples/">Browse examples <span aria-hidden="true">→</span></a></div>
+</section>
 
 </div>
