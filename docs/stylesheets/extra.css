@@ -114,9 +114,11 @@
 .at-install { max-width: 21rem; margin-top: 1.55rem; }
 .at-install .highlight { margin: 0; }
 .at-home .at-install pre { margin: 0; }
-.at-home .at-install code { padding: .75rem 2.6rem .75rem 1rem; font-size: .68rem; border: 1px solid var(--at-line); border-radius: .35rem; color: var(--at-ink); background: var(--at-surface); }
-.at-install .md-clipboard { top: .4rem; }
-.at-install .md-code__button { color: var(--at-muted); }
+/* Keep the single command on the native code surface with room for Copy. */
+.at-home .at-install pre > code { padding: .75rem 2.8rem .75rem 1rem; }
+.at-install .md-code__nav { top: 50%; transform: translateY(-50%); background: transparent; }
+.at-install .md-code__button { color: var(--md-default-fg-color--light); }
+.at-install .md-code__button:hover { color: var(--md-accent-fg-color); }
 .at-home .at-install-note { color: var(--at-muted); font-size: .55rem; margin-top: .65rem; }
 .at-install-note > span { padding: 0 .3rem; }
 .at-install-note a { text-underline-offset: 3px; text-decoration: underline; }

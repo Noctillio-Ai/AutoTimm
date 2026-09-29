@@ -22,7 +22,7 @@ hide:
 <a class="at-button at-button-secondary" href="https://github.com/theja-vanka/AutoTimm">View on GitHub <span aria-hidden="true">↗</span></a>
 </div>
 
-<div class="at-install">
+<div class="at-install no-select">
 
 ```bash
 pip install autotimm
