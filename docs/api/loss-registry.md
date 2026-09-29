@@ -515,6 +515,6 @@ model = SemanticSegmentor(
 
 ## See Also
 
-- [Loss Function Comparison](../training/loss-comparison.md) - Detailed comparison of available losses
+- [Loss Function Comparison](../user-guide/training/loss-comparison.md) - Detailed comparison of available losses
 - [Custom Loss Functions Example](../../examples/utilities/custom_loss_functions.py) - Complete working examples
 - [API Reference: Losses](../api/losses.md) - Individual loss function documentation
