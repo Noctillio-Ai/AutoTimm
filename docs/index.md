@@ -1,27 +1,17 @@
 ---
 title: AutoTimm - Automated Deep Learning for Computer Vision
-description: Train image classification, object detection, and segmentation models with 1000+ timm backbones. A flexible computer vision workflow built on PyTorch Lightning.
+description: Build computer vision models with less setup. Explore 1000+ timm backbones for classification, detection, and segmentation with PyTorch Lightning.
 hide:
   - navigation
   - toc
 ---
 
 <div class="at-home">
-
 <section class="at-hero" aria-labelledby="hero-title">
-<div class="at-hero-copy">
-
 <img class="at-floating-logo" src="autotimm.png" alt="AutoTimm" width="1166" height="444" decoding="async">
-
-<p class="at-eyebrow"><span class="at-status" aria-hidden="true"></span> OPEN SOURCE COMPUTER VISION</p>
-<h1 id="hero-title">Your next vision model.<br><span>Less boilerplate.</span></h1>
-<p class="at-lead">Go from dataset to trained model with a few lines of Python. Build on 1000+ backbones, with the flexibility of PyTorch and the structure of Lightning.</p>
-
-<div class="at-actions">
-<a class="at-button at-button-primary" href="getting-started/quickstart/">Start building <span aria-hidden="true">↗</span></a>
-<a class="at-button at-button-secondary" href="https://github.com/theja-vanka/AutoTimm">View on GitHub <span aria-hidden="true">↗</span></a>
-</div>
-
+<h1 id="hero-title">Build vision models.<br><span>Keep your focus.</span></h1>
+<p class="at-lead">From your first dataset to your next breakthrough.<br> Classification, detection, and segmentation with the tools you already know.</p>
+<div class="at-actions"><a class="at-button at-primary" href="getting-started/quickstart/">Get started <span aria-hidden="true">→</span></a><a class="at-button at-secondary" href="https://github.com/theja-vanka/AutoTimm">View on GitHub <span aria-hidden="true">↗</span></a></div>
 <div class="at-install no-select">
 
 ```bash
@@ -29,9 +19,30 @@ pip install autotimm
 ```
 
 </div>
-<p class="at-install-note">Python 3.10+ <span aria-hidden="true">·</span> Apache 2.0 <span aria-hidden="true">·</span> <a href="getting-started/installation/">Installation guide</a></p>
+<p class="at-compatibility">Python 3.10+ <span aria-hidden="true">·</span> Open source <span aria-hidden="true">·</span> Apache 2.0</p>
+</section>
 
+<section class="at-task-section" aria-labelledby="tasks-title">
+<div class="at-section-heading"><h2 id="tasks-title">One workflow. Every vision task.</h2><p>Choose what you want to build.</p></div>
+<div class="at-task-picker">
+<fieldset class="at-options"><legend class="at-sr-only">Choose a vision task</legend>
+<label><input type="radio" name="at-task" id="at-classification" checked><span>Classification</span></label>
+<label><input type="radio" name="at-task" id="at-detection"><span>Object detection</span></label>
+<label><input type="radio" name="at-task" id="at-semantic"><span>Semantic segmentation</span></label>
+<label><input type="radio" name="at-task" id="at-instance"><span>Instance segmentation</span></label>
+</fieldset>
+<div class="at-task-panels">
+<section class="at-task-panel" id="at-panel-classification" aria-labelledby="classification-title"><div class="at-task-description"><span class="at-task-caption">Understand the whole image</span><h3 id="classification-title">An image in.<br>A label out.</h3><p>Build an image classifier with a pretrained CNN or vision transformer. Choose your backbone, define your metrics, and start training.</p><a href="examples/tasks/classification/">Explore classification <span aria-hidden="true">→</span></a></div><div class="at-pipeline" aria-label="Image classification workflow"><div><span>DATA</span><code>ImageDataModule</code><small>Your images, ready for training</small></div><span class="at-pipeline-arrow" aria-hidden="true">↓</span><div class="at-pipeline-model"><span>MODEL</span><code>ImageClassifier</code><small>ResNet · EfficientNet · ViT</small></div><span class="at-pipeline-arrow" aria-hidden="true">↓</span><div><span>TRAIN</span><code>AutoTrainer</code><small>Powered by PyTorch Lightning</small></div></div></section>
+<section class="at-task-panel" id="at-panel-detection" aria-labelledby="detection-title"><div class="at-task-description"><span class="at-task-caption">Find what matters</span><h3 id="detection-title">Know what’s there.<br>And where it is.</h3><p>Locate objects with bounding boxes using FCOS or YOLOX. Load COCO-format data and track detection metrics in the same training workflow.</p><a href="examples/tasks/object-detection/">Explore object detection <span aria-hidden="true">→</span></a></div><div class="at-pipeline" aria-label="Object detection workflow"><div><span>DATA</span><code>DetectionDataModule</code><small>Images and bounding boxes</small></div><span class="at-pipeline-arrow" aria-hidden="true">↓</span><div class="at-pipeline-model"><span>MODEL</span><code>ObjectDetector</code><small>FCOS with your choice of backbone</small></div><span class="at-pipeline-arrow" aria-hidden="true">↓</span><div><span>TRAIN</span><code>AutoTrainer</code><small>Powered by PyTorch Lightning</small></div></div></section>
+<section class="at-task-panel" id="at-panel-semantic" aria-labelledby="semantic-title"><div class="at-task-description"><span class="at-task-caption">See the complete picture</span><h3 id="semantic-title">Give every pixel<br>a purpose.</h3><p>Assign a class to every pixel with DeepLabV3+ or FCN. Configure segmentation losses and metrics to fit your dataset.</p><a href="examples/tasks/semantic-segmentation/">Explore semantic segmentation <span aria-hidden="true">→</span></a></div><div class="at-pipeline" aria-label="Semantic segmentation workflow"><div><span>DATA</span><code>SegmentationDataModule</code><small>Images and semantic masks</small></div><span class="at-pipeline-arrow" aria-hidden="true">↓</span><div class="at-pipeline-model"><span>MODEL</span><code>SemanticSegmentor</code><small>DeepLabV3+ · FCN</small></div><span class="at-pipeline-arrow" aria-hidden="true">↓</span><div><span>TRAIN</span><code>AutoTrainer</code><small>Powered by PyTorch Lightning</small></div></div></section>
+<section class="at-task-panel" id="at-panel-instance" aria-labelledby="instance-title"><div class="at-task-description"><span class="at-task-caption">Separate every instance</span><h3 id="instance-title">Every object.<br>Its own outline.</h3><p>Combine object detection with per-instance masks. Distinguish individual objects, even when they belong to the same class.</p><a href="examples/tasks/instance-segmentation/">Explore instance segmentation <span aria-hidden="true">→</span></a></div><div class="at-pipeline" aria-label="Instance segmentation workflow"><div><span>DATA</span><code>InstanceSegmentationDataModule</code><small>Images and per-instance masks</small></div><span class="at-pipeline-arrow" aria-hidden="true">↓</span><div class="at-pipeline-model"><span>MODEL</span><code>InstanceSegmentor</code><small>Detection with a mask head</small></div><span class="at-pipeline-arrow" aria-hidden="true">↓</span><div><span>TRAIN</span><code>AutoTrainer</code><small>Powered by PyTorch Lightning</small></div></div></section>
 </div>
+<div class="at-workspace-footer"><span><strong>1000+</strong> timm backbones</span><span><strong>4</strong> vision tasks</span><span><strong>One</strong> training interface</span></div>
+</div>
+</section>
+
+<section class="at-example" aria-labelledby="example-title">
+<div class="at-section-heading"><h2 id="example-title">Less setup. More experimenting.</h2><p>A complete classification example, from data to training.</p></div>
 <div class="at-code-panel">
 
 ```python
@@ -63,51 +74,13 @@ trainer.fit(model, datamodule=data)
 ```
 
 </div>
+<div class="at-example-footer"><p>Start with ResNet. Switch to ConvNeXt, EfficientNet, ViT, or Swin.</p><a href="getting-started/quickstart/">Follow the quick start <span aria-hidden="true">→</span></a></div>
 </section>
 
-<div class="at-foundation">
-<p>BUILT ON THE TOOLS YOU KNOW</p>
-<div><a href="https://pytorch.org/">PyTorch</a><span aria-hidden="true">/</span><a href="https://github.com/huggingface/pytorch-image-models">timm</a><span aria-hidden="true">/</span><a href="https://github.com/Lightning-AI/pytorch-lightning">Lightning</a><span aria-hidden="true">/</span><a href="user-guide/integration/huggingface-hub-integration/">Hugging Face</a></div>
-</div>
-
-<section class="at-section" aria-labelledby="tasks-title">
-<div class="at-section-heading">
-<div><p class="at-eyebrow">ONE LIBRARY. FOUR VISION TASKS.</p><h2 id="tasks-title">What will you build?</h2></div>
-<p>Choose your task. Keep the same familiar training workflow.</p>
-</div>
-<div class="at-task-grid">
-<a class="at-task" href="examples/tasks/classification/">
-<div class="at-task-top"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="8" y="8" width="32" height="32" rx="5"/><path d="m15 25 6 6 13-14"/></svg><span>01</span></div>
-<h3>Image classification</h3><p>Turn images into labels with pretrained CNNs and vision transformers.</p><span class="at-card-link">Explore classification <span aria-hidden="true">↗</span></span>
-</a>
-<a class="at-task" href="examples/tasks/object-detection/">
-<div class="at-task-top"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M16 6H6v10m26-10h10v10M6 32v10h10m26-10v10H32"/><rect x="15" y="15" width="18" height="18" rx="2"/></svg><span>02</span></div>
-<h3>Object detection</h3><p>Find and localize objects with FCOS and YOLOX detectors.</p><span class="at-card-link">Explore detection <span aria-hidden="true">↗</span></span>
-</a>
-<a class="at-task" href="examples/tasks/semantic-segmentation/">
-<div class="at-task-top"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="7" y="7" width="34" height="34" rx="4"/><path d="M7 27h12V16h12v25M19 27v14M31 24h10"/></svg><span>03</span></div>
-<h3>Semantic segmentation</h3><p>Give every pixel a class with DeepLabV3+ and FCN architectures.</p><span class="at-card-link">Explore segmentation <span aria-hidden="true">↗</span></span>
-</a>
-<a class="at-task" href="examples/tasks/instance-segmentation/">
-<div class="at-task-top"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="6" y="6" width="23" height="23" rx="6"/><rect x="19" y="19" width="23" height="23" rx="6"/></svg><span>04</span></div>
-<h3>Instance segmentation</h3><p>Separate individual objects with detection and per-instance masks.</p><span class="at-card-link">Explore instances <span aria-hidden="true">↗</span></span>
-</a>
-</div>
+<section class="at-resources" aria-labelledby="resources-title"><div class="at-section-heading"><h2 id="resources-title">Room to go further.</h2><p>The essentials are connected. The choices stay yours.</p></div>
+<div class="at-resource-links"><a href="user-guide/training/training/"><strong>Refine your training</strong><span>Automatic learning rate and batch size finding, mixed precision, and distributed training.</span><span aria-hidden="true">↗</span></a><a href="user-guide/guides/logging/"><strong>Track every experiment</strong><span>Configurable metrics with TensorBoard, MLflow, W&B, and CSV logging.</span><span aria-hidden="true">↗</span></a><a href="user-guide/interpretation/"><strong>Understand predictions</strong><span>GradCAM, integrated gradients, and interactive visualizations.</span><span aria-hidden="true">↗</span></a><a href="user-guide/inference/model-export/"><strong>Put your model to work</strong><span>Export to TorchScript or ONNX and build your inference workflow.</span><span aria-hidden="true">↗</span></a></div>
 </section>
 
-<section class="at-capabilities at-section" aria-labelledby="features-title">
-<div class="at-capabilities-intro"><p class="at-eyebrow">LESS SETUP. MORE EXPERIMENTING.</p><h2 id="features-title">The building blocks.<br>Already connected.</h2><p>Spend your time on the model and the data. AutoTimm brings the training essentials together, while keeping you in control.</p><a class="at-text-link" href="user-guide/">Explore the user guide <span aria-hidden="true">→</span></a><div class="at-backbone-stat"><strong>1000<span>+</span></strong><span>backbones from timm</span></div><div class="at-model-tags"><span>ResNet</span><span>EfficientNet</span><span>ConvNeXt</span><span>ViT</span><span>Swin</span></div></div>
-<div class="at-feature-grid">
-<div class="at-feature"><span class="at-feature-number">01 / TRAIN</span><h3>Find your training rhythm</h3><p>Automatic learning rate and batch size finding, mixed precision, and distributed training through Lightning.</p><a href="user-guide/training/training/">Training guide <span aria-hidden="true">↗</span></a></div>
-<div class="at-feature"><span class="at-feature-number">02 / MEASURE</span><h3>Make every run count</h3><p>Configure torchmetrics and track experiments with TensorBoard, MLflow, W&B, or CSV loggers.</p><a href="user-guide/guides/logging/">Logging guide <span aria-hidden="true">↗</span></a></div>
-<div class="at-feature"><span class="at-feature-number">03 / UNDERSTAND</span><h3>Look inside your model</h3><p>Explore predictions with GradCAM, integrated gradients, and interactive visualizations.</p><a href="user-guide/interpretation/">Interpretation guide <span aria-hidden="true">↗</span></a></div>
-<div class="at-feature"><span class="at-feature-number">04 / DEPLOY</span><h3>Take the next step</h3><p>Export trained models with TorchScript or ONNX and bring your work into inference workflows.</p><a href="user-guide/inference/model-export/">Export guide <span aria-hidden="true">↗</span></a></div>
-</div>
-</section>
-
-<section class="at-bottom-cta" aria-labelledby="start-title">
-<div><p class="at-eyebrow">FROM IDEA TO FIRST EXPERIMENT</p><h2 id="start-title">Let’s get your model training.</h2><p>Start with the quick start guide, or find an example for your task.</p></div>
-<div class="at-actions"><a class="at-button at-button-primary" href="getting-started/quickstart/">Get started <span aria-hidden="true">↗</span></a><a class="at-text-link" href="examples/">Browse examples <span aria-hidden="true">→</span></a></div>
-</section>
-
+<div class="at-foundation"><p>Built on a familiar foundation</p><div><a href="https://pytorch.org/">PyTorch</a><a href="https://github.com/huggingface/pytorch-image-models">timm</a><a href="https://github.com/Lightning-AI/pytorch-lightning">Lightning</a><a href="user-guide/integration/huggingface-hub-integration/">Hugging Face</a></div></div>
+<section class="at-finale" aria-labelledby="start-title"><h2 id="start-title">Your next model starts here.</h2><div class="at-actions"><a class="at-button at-primary" href="getting-started/quickstart/">Get started <span aria-hidden="true">→</span></a><a class="at-button at-secondary" href="examples/">Browse examples <span aria-hidden="true">↗</span></a></div></section>
 </div>
