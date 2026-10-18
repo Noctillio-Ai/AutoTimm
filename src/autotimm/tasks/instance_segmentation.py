@@ -122,6 +122,9 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
         ... )
     """
 
+    # No validation loss is logged; best checkpoints follow the default mask mAP.
+    default_checkpoint_monitor = ("val/mask_mAP_map", "max")
+
     def __init__(
         self,
         backbone: str | FeatureBackboneConfig,

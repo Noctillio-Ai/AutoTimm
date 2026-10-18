@@ -23,6 +23,12 @@ def _ensure_safe_multiprocessing() -> None:
     macOS defaults to 'spawn' which requires ``if __name__ == '__main__'``
     guards. Using 'fork' avoids this issue for dataloader workers.
 
+    Forked workers must not use Grand Central Dispatch, which OpenCV's
+    thread pool runs on macOS: once the parent has used it, a worker that
+    calls ``cv2.cvtColor`` (or any parallel OpenCV op) dies with SIGSEGV.
+    So whenever workers fork on macOS, OpenCV's threading is turned off;
+    forked workers inherit the setting.
+
     On Windows, 'spawn' is the only supported start method and is already the
     default, so no action is needed.  On Linux, 'fork' is already the default.
     """
@@ -32,6 +38,42 @@ def _ensure_safe_multiprocessing() -> None:
         except RuntimeError:
             # Already set — nothing to do.
             pass
+        if multiprocessing.get_start_method() == "fork":
+            _disable_opencv_threads()
+
+
+def _disable_opencv_threads() -> None:
+    """Run OpenCV single-threaded (a no-op when OpenCV isn't installed)."""
+    try:
+        import cv2
+    except ImportError:
+        return
+    cv2.setNumThreads(0)
+
+
+# Checkpoint metric used when a task doesn't declare one.
+_DEFAULT_CHECKPOINT_MONITOR = ("val/loss", "min")
+
+
+def _checkpoint_monitor_for(model: Any) -> tuple[str, str]:
+    """Metric and mode a task's best checkpoint should follow.
+
+    Tasks that log no validation loss (detection, instance segmentation)
+    declare their main metric as ``default_checkpoint_monitor``.
+    """
+    return getattr(model, "default_checkpoint_monitor", _DEFAULT_CHECKPOINT_MONITOR)
+
+
+def _best_checkpoint_callback(monitor: str, mode: str) -> pl.callbacks.ModelCheckpoint:
+    # Replace '/' in monitor name to avoid creating subdirectories
+    safe_monitor = monitor.replace("/", "_")
+    return pl.callbacks.ModelCheckpoint(
+        monitor=monitor,
+        mode=mode,
+        save_top_k=1,
+        filename=f"best-{{epoch}}-{{{safe_monitor}:.4f}}",
+        auto_insert_metric_name=False,
+    )
 
 
 # Module-level flag to ensure watermark is printed only once per session
@@ -169,10 +211,12 @@ class AutoTrainer(pl.Trainer):
             is created with both auto_lr and auto_batch_size enabled.
             To disable auto-tuning completely, pass ``False``.
         checkpoint_monitor: Metric to monitor for checkpointing (e.g.,
-            ``"val/accuracy"``). If ``None``, no automatic checkpoint
-            callback is added.
+            ``"val/accuracy"``). ``"auto"`` (default) follows the task's main
+            metric: ``val/map`` for detection, the mask mAP for instance
+            segmentation, ``val/loss`` otherwise. If ``None``, no automatic
+            checkpoint callback is added.
         checkpoint_mode: One of ``"min"`` or ``"max"`` for checkpoint
-            monitoring.
+            monitoring. Ignored when ``checkpoint_monitor="auto"``.
         callbacks: List of Lightning callbacks.
         default_root_dir: Root directory for logs and checkpoints.
         gradient_clip_val: Gradient clipping value.
@@ -250,7 +294,7 @@ class AutoTrainer(pl.Trainer):
             | bool
         ) = False,
         tuner_config: TunerConfig | None | bool = None,
-        checkpoint_monitor: str | None = "val/loss",
+        checkpoint_monitor: str | None = "auto",
         checkpoint_mode: str = "min",
         callbacks: list[pl.Callback] | None = None,
         default_root_dir: str = ".",
@@ -290,22 +334,24 @@ class AutoTrainer(pl.Trainer):
         # elsewhere (e.g. across multiple AutoTrainer instances).
         callbacks = list(callbacks) if callbacks is not None else []
 
+        # With checkpoint_monitor="auto" the metric depends on the task, which
+        # is only known in fit(); start from the default and retarget there.
+        self._auto_checkpoint_cb: pl.callbacks.ModelCheckpoint | None = None
         if enable_checkpointing and checkpoint_monitor:
             has_checkpoint_cb = any(
                 isinstance(cb, pl.callbacks.ModelCheckpoint) for cb in callbacks
             )
             if not has_checkpoint_cb:
-                # Replace '/' in monitor name to avoid creating subdirectories
-                safe_monitor = checkpoint_monitor.replace("/", "_")
-                callbacks.append(
-                    pl.callbacks.ModelCheckpoint(
-                        monitor=checkpoint_monitor,
-                        mode=checkpoint_mode,
-                        save_top_k=1,
-                        filename=f"best-{{epoch}}-{{{safe_monitor}:.4f}}",
-                        auto_insert_metric_name=False,
+                if checkpoint_monitor == "auto":
+                    checkpoint_monitor, checkpoint_mode = _DEFAULT_CHECKPOINT_MONITOR
+                    self._auto_checkpoint_cb = _best_checkpoint_callback(
+                        checkpoint_monitor, checkpoint_mode
                     )
-                )
+                    callbacks.append(self._auto_checkpoint_cb)
+                else:
+                    callbacks.append(
+                        _best_checkpoint_callback(checkpoint_monitor, checkpoint_mode)
+                    )
 
         # Store json_progress flag and log file for tuning event emission
         self._json_progress = json_progress
@@ -384,6 +430,7 @@ class AutoTrainer(pl.Trainer):
         """
         # Ensure fork-based multiprocessing on macOS to avoid spawn guard issues
         _ensure_safe_multiprocessing()
+        self._resolve_auto_checkpoint(model)
 
         # Apply seeding at the start of fit() so trainer seed is authoritative
         self._apply_seeding()
@@ -455,6 +502,18 @@ class AutoTrainer(pl.Trainer):
             ckpt_path=ckpt_path,
             verbose=verbose,
         )
+
+    def _resolve_auto_checkpoint(self, model: Any) -> None:
+        """Point an ``"auto"`` checkpoint callback at the task's main metric."""
+        cb = self._auto_checkpoint_cb
+        if cb is None or model is None:
+            return
+        monitor, mode = _checkpoint_monitor_for(model)
+        if (cb.monitor, cb.mode) == (monitor, mode):
+            return
+        replacement = _best_checkpoint_callback(monitor, mode)
+        self.callbacks[self.callbacks.index(cb)] = replacement
+        self._auto_checkpoint_cb = replacement
 
     def _resolve_best_ckpt_path(self) -> str | None:
         """Resolve ``ckpt_path="best"`` to an actual file path.

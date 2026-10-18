@@ -99,6 +99,9 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
         ... )
     """
 
+    # No validation loss is logged; best checkpoints follow COCO mAP.
+    default_checkpoint_monitor = ("val/map", "max")
+
     def __init__(
         self,
         backbone: str | FeatureBackboneConfig,
