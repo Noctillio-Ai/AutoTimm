@@ -85,6 +85,9 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
         >>> trainer.fit(model, datamodule=data)
     """
 
+    # No validation loss is logged; best checkpoints follow COCO mAP.
+    default_checkpoint_monitor = ("val/map", "max")
+
     def __init__(
         self,
         model_name: str = "yolox-s",
