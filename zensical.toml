@@ -4,9 +4,9 @@
 site_name = "AutoTimm"
 site_description = "AutoTimm - Automatic PyTorch Image Models for Computer Vision. Build, train, and deploy state-of-the-art models for image classification, object detection, and segmentation with minimal code."
 site_author = "Krishnatheja Vanka"
-site_url = "https://theja-vanka.github.io/AutoTimm"
-repo_name = "theja-vanka/AutoTimm"
-repo_url = "https://github.com/theja-vanka/AutoTimm"
+site_url = "https://noctillio-ai.github.io/AutoTimm"
+repo_name = "Noctillio-Ai/AutoTimm"
+repo_url = "https://github.com/Noctillio-Ai/AutoTimm"
 copyright = "Copyright &copy; 2026 <a href=\"https://github.com/theja-vanka\" target=\"_blank\">Krishnatheja Vanka</a>. Built with <span class=\"heart-icon\">♥</span>"
 extra_css = ["stylesheets/mermaid.css", "stylesheets/extra.css"]
 nav = [
@@ -335,7 +335,7 @@ generator = false
 
 [[project.extra.social]]
 icon = "fontawesome/brands/github"
-link = "https://github.com/theja-vanka/AutoTimm"
+link = "https://github.com/Noctillio-Ai/AutoTimm"
 name = "AutoTimm on GitHub"
 
 [[project.extra.social]]

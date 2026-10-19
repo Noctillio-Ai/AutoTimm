@@ -11,7 +11,7 @@ hide:
 <img class="at-floating-logo" src="autotimm.png" alt="AutoTimm" width="1166" height="444" decoding="async">
 <h1 id="hero-title">Build vision models.<br><span>Keep your focus.</span></h1>
 <p class="at-lead">From your first dataset to your next breakthrough.<br> Classification, detection, and segmentation with the tools you already know.</p>
-<div class="at-actions"><a class="at-button at-primary" href="getting-started/quickstart/">Get started <span aria-hidden="true">→</span></a><a class="at-button at-secondary" href="https://github.com/theja-vanka/AutoTimm">View on GitHub <span aria-hidden="true">↗</span></a></div>
+<div class="at-actions"><a class="at-button at-primary" href="getting-started/quickstart/">Get started <span aria-hidden="true">→</span></a><a class="at-button at-secondary" href="https://github.com/Noctillio-Ai/AutoTimm">View on GitHub <span aria-hidden="true">↗</span></a></div>
 <div class="at-install no-select">
 
 ```bash

@@ -339,4 +339,4 @@ See [CLI API Reference](../../api/cli.md) for full argument details.
 
 ---
 
-See also: [AutoTrainer API](../../api/trainer.md) | [CLI API Reference](../../api/cli.md) | [Export API](../../api/export.md) | [Example Configs](https://github.com/theja-vanka/AutoTimm/tree/main/examples/cli)
+See also: [AutoTrainer API](../../api/trainer.md) | [CLI API Reference](../../api/cli.md) | [Export API](../../api/export.md) | [Example Configs](https://github.com/Noctillio-Ai/AutoTimm/tree/main/examples/cli)

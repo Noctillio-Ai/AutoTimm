@@ -186,7 +186,7 @@ Common YOLOX-specific issues include:
 
 - [Complete YOLOX Guide](../models/yolox-detector.md)
 - [Official YOLOX Repo](https://github.com/Megvii-BaseDetection/YOLOX)
-- [AutoTimm Docs](https://theja-vanka.github.io/AutoTimm/)
+- [AutoTimm Docs](https://noctillio-ai.github.io/AutoTimm/)
 - [Object Detector Guide](../models/object-detector.md)
 
 ## Cheat Sheet

@@ -122,6 +122,8 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: publish-pypi
+    permissions:
+      contents: write  # required to create releases; default GITHUB_TOKEN is read-only
 
     steps:
       - uses: softprops/action-gh-release@v2

@@ -308,7 +308,7 @@ if __name__ == "__main__":
 
 ## Comprehensive Tutorial
 
-The [`comprehensive_interpretation_tutorial.ipynb`](https://github.com/theja-vanka/AutoTimm/blob/main/examples/interpretation/comprehensive_interpretation_tutorial.ipynb) notebook provides a complete guide to model interpretation.
+The [`comprehensive_interpretation_tutorial.ipynb`](https://github.com/Noctillio-Ai/AutoTimm/blob/main/examples/interpretation/comprehensive_interpretation_tutorial.ipynb) notebook provides a complete guide to model interpretation.
 
 **Topics Covered:**
 

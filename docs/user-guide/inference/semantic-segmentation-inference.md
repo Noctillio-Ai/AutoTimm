@@ -4,7 +4,7 @@ This guide covers how to perform inference with trained semantic segmentation mo
 
 ## Overview
 
-The [`segmentation_inference.py`](https://github.com/theja-vanka/AutoTimm/blob/main/examples/logging_inference/segmentation_inference.py) script provides a comprehensive toolkit for semantic segmentation inference with the following features:
+The [`segmentation_inference.py`](https://github.com/Noctillio-Ai/AutoTimm/blob/main/examples/logging_inference/segmentation_inference.py) script provides a comprehensive toolkit for semantic segmentation inference with the following features:
 
 **Core Features:**
 

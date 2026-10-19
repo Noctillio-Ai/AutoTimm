@@ -145,5 +145,5 @@ if __name__ == "__main__":
     enhance_sitemap(str(sitemap_path))
 
     # Copy robots.txt
-    site_url = "https://theja-vanka.github.io/AutoTimm"
+    site_url = "https://noctillio-ai.github.io/AutoTimm"
     copy_robots_txt(project_root, site_url)
