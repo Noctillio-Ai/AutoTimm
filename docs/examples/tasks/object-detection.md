@@ -550,7 +550,7 @@ pip install transformers
 
 ## Inference
 
-The [`detection_inference.py`](https://github.com/theja-vanka/AutoTimm/blob/main/examples/logging_inference/detection_inference.py) script provides a comprehensive toolkit for object detection inference.
+The [`detection_inference.py`](https://github.com/Noctillio-Ai/AutoTimm/blob/main/examples/logging_inference/detection_inference.py) script provides a comprehensive toolkit for object detection inference.
 
 ### Features
 
@@ -645,7 +645,7 @@ python examples/logging_inference/detection_inference.py
 Clone the repository and run examples:
 
 ```bash
-git clone https://github.com/theja-vanka/AutoTimm.git
+git clone https://github.com/Noctillio-Ai/AutoTimm.git
 cd AutoTimm
 pip install -e ".[all]"
 

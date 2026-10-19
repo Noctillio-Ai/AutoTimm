@@ -170,4 +170,4 @@ python -m autotimm.cli.interpret_cli \
 
 ---
 
-See also: [CLI User Guide](../user-guide/training/cli.md) | [AutoTrainer](trainer.md) | [Export API](export.md) | [Example Configs](https://github.com/theja-vanka/AutoTimm/tree/main/examples/cli)
+See also: [CLI User Guide](../user-guide/training/cli.md) | [AutoTrainer](trainer.md) | [Export API](export.md) | [Example Configs](https://github.com/Noctillio-Ai/AutoTimm/tree/main/examples/cli)

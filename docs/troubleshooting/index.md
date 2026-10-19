@@ -132,7 +132,7 @@ If you encounter an issue not covered here:
 2. **Check error reference**: See [Error Reference](reference/error-reference.md) for common errors
 3. **Enable debug logging**: Get more detailed error information
 4. **Create minimal reproduction**: Isolate the issue to simplify debugging
-5. **Report issues**: Open an issue at [GitHub Issues](https://github.com/theja-vanka/AutoTimm/issues)
+5. **Report issues**: Open an issue at [GitHub Issues](https://github.com/Noctillio-Ai/AutoTimm/issues)
 
 ## Debug Mode
 

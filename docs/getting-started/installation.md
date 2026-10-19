@@ -70,7 +70,7 @@ Includes all optional dependencies: tensorboard, mlflow, and wandb.
 For contributing or developing locally:
 
 ```bash
-git clone https://github.com/theja-vanka/AutoTimm.git
+git clone https://github.com/Noctillio-Ai/AutoTimm.git
 cd AutoTimm
 pip install -e ".[dev,all]"
 ```

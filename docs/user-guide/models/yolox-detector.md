@@ -473,7 +473,7 @@ See the `examples/` directory for complete working examples:
 - **[Object Detector Guide](object-detector.md)** - YOLOX-style with timm backbones
 - **Official YOLOX**: https://github.com/Megvii-BaseDetection/YOLOX
 - **Paper**: https://arxiv.org/abs/2107.08430
-- **AutoTimm Docs**: https://theja-vanka.github.io/AutoTimm/
+- **AutoTimm Docs**: https://noctillio-ai.github.io/AutoTimm/
 
 ## Troubleshooting
 

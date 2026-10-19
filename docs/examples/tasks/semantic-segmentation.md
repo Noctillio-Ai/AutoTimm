@@ -383,7 +383,7 @@ if __name__ == "__main__":
 
 ## Inference
 
-The [`segmentation_inference.py`](https://github.com/theja-vanka/AutoTimm/blob/main/examples/logging_inference/segmentation_inference.py) script provides a comprehensive toolkit for semantic segmentation inference.
+The [`segmentation_inference.py`](https://github.com/Noctillio-Ai/AutoTimm/blob/main/examples/logging_inference/segmentation_inference.py) script provides a comprehensive toolkit for semantic segmentation inference.
 
 ### Features
 

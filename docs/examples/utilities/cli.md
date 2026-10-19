@@ -13,7 +13,7 @@ pip install autotimm
 
 ## Classification
 
-**Config:** [`examples/cli/classification.yaml`](https://github.com/theja-vanka/AutoTimm/blob/main/examples/cli/classification.yaml)
+**Config:** [`examples/cli/classification.yaml`](https://github.com/Noctillio-Ai/AutoTimm/blob/main/examples/cli/classification.yaml)
 
 ```yaml
 model:
@@ -54,7 +54,7 @@ autotimm fit --config examples/cli/classification.yaml --model.init_args.lr 0.00
 
 ## Object Detection
 
-**Config:** [`examples/cli/detection.yaml`](https://github.com/theja-vanka/AutoTimm/blob/main/examples/cli/detection.yaml)
+**Config:** [`examples/cli/detection.yaml`](https://github.com/Noctillio-Ai/AutoTimm/blob/main/examples/cli/detection.yaml)
 
 ```yaml
 model:
@@ -90,7 +90,7 @@ autotimm fit --config examples/cli/detection.yaml
 
 ## Semantic Segmentation
 
-**Config:** [`examples/cli/segmentation.yaml`](https://github.com/theja-vanka/AutoTimm/blob/main/examples/cli/segmentation.yaml)
+**Config:** [`examples/cli/segmentation.yaml`](https://github.com/Noctillio-Ai/AutoTimm/blob/main/examples/cli/segmentation.yaml)
 
 ```yaml
 model:

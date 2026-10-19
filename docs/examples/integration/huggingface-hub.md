@@ -360,4 +360,4 @@ For HuggingFace Hub issues, see the [Troubleshooting - HuggingFace](../../troubl
 
 - [Hugging Face Hub - timm](https://huggingface.co/timm)
 - [timm Documentation](https://huggingface.co/docs/timm)
-- [AutoTimm Documentation](https://theja-vanka.github.io/AutoTimm/)
+- [AutoTimm Documentation](https://noctillio-ai.github.io/AutoTimm/)

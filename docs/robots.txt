@@ -5,4 +5,4 @@ Disallow: /assets/javascripts/
 Disallow: /assets/stylesheets/
 
 # Sitemaps
-Sitemap: https://theja-vanka.github.io/AutoTimm/sitemap.xml
+Sitemap: https://noctillio-ai.github.io/AutoTimm/sitemap.xml

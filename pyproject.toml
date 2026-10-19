@@ -106,11 +106,11 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://theja-vanka.github.io/AutoTimm"
-Documentation = "https://theja-vanka.github.io/AutoTimm"
-Repository = "https://github.com/theja-vanka/AutoTimm"
-Issues = "https://github.com/theja-vanka/AutoTimm/issues"
-Changelog = "https://github.com/theja-vanka/AutoTimm/releases"
+Homepage = "https://noctillio-ai.github.io/AutoTimm"
+Documentation = "https://noctillio-ai.github.io/AutoTimm"
+Repository = "https://github.com/Noctillio-Ai/AutoTimm"
+Issues = "https://github.com/Noctillio-Ai/AutoTimm/issues"
+Changelog = "https://github.com/Noctillio-Ai/AutoTimm/releases"
 
 [tool.setuptools]
 include-package-data = true

@@ -317,7 +317,7 @@ if __name__ == "__main__":
 ## Running Classification Examples
 
 ```bash
-git clone https://github.com/theja-vanka/AutoTimm.git
+git clone https://github.com/Noctillio-Ai/AutoTimm.git
 cd AutoTimm
 pip install -e ".[all]"
 

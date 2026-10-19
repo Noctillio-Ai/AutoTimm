@@ -5,7 +5,7 @@ description: Runnable code examples for AutoTimm — image classification, objec
 
 # Examples
 
-The [`examples/`](https://github.com/theja-vanka/AutoTimm/tree/main/examples) directory contains runnable scripts demonstrating AutoTimm features.
+The [`examples/`](https://github.com/Noctillio-Ai/AutoTimm/tree/main/examples) directory contains runnable scripts demonstrating AutoTimm features.
 
 ## Examples Organization
 
@@ -190,7 +190,7 @@ To run any example:
 
 ```bash
 # Clone the repository
-git clone https://github.com/theja-vanka/AutoTimm.git
+git clone https://github.com/Noctillio-Ai/AutoTimm.git
 cd AutoTimm
 
 # Install AutoTimm with all dependencies
