@@ -24,10 +24,11 @@ from autotimm.tasks._fcos_targets import (
     compute_fcos_detection_loss,
     decode_fcos_detections,
 )
+from autotimm.tasks.backbone_freeze_mixin import BackboneFreezeMixin
 from autotimm.tasks.preprocessing_mixin import PreprocessingMixin
 
 
-class ObjectDetector(PreprocessingMixin, pl.LightningModule):
+class ObjectDetector(PreprocessingMixin, BackboneFreezeMixin, pl.LightningModule):
     """End-to-end object detector supporting FCOS and YOLOX architectures.
 
     Architecture: timm backbone → FPN → Detection Head (FCOS/YOLOX) → NMS
@@ -69,7 +70,12 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
         score_thresh: Score threshold for detections during inference.
         nms_thresh: IoU threshold for NMS.
         max_detections_per_image: Maximum detections to keep per image.
-        freeze_backbone: If ``True``, backbone parameters are frozen.
+        freeze_backbone: If ``True``, the pretrained backbone is frozen
+            (``requires_grad=False`` and kept in eval mode) so only the task
+            head is trained. Recommended for transformer backbones (ViT,
+            Swin, DeiT, ...) to avoid catastrophic forgetting. Can be toggled
+            later via ``model.unfreeze_backbone()`` or
+            ``model.freeze_backbone = True/False``.
         strides: FPN output strides. Default (8, 16, 32, 64, 128) for P3-P7.
         regress_ranges: Regression ranges for each FPN level (FCOS only).
         compile_model: If ``True`` (default), apply ``torch.compile()`` to the backbone, FPN, and head
@@ -236,6 +242,7 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
                 num_classes=num_classes,
                 num_convs=head_num_convs,
                 prior_prob=0.01,
+                strides=strides,
             )
         elif detection_arch == "yolox":
             self.head = YOLOXHead(
@@ -244,6 +251,7 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
                 num_convs=(min(head_num_convs, 2)),  # YOLOX typically uses 2 convs
                 prior_prob=0.01,
                 activation="silu",
+                strides=strides,
             )
 
         # Losses
@@ -323,9 +331,9 @@ class ObjectDetector(PreprocessingMixin, pl.LightningModule):
             log_gradient_norm=False,
         )
 
-        if freeze_backbone:
-            for param in self.backbone.parameters():
-                param.requires_grad = False
+        # Freeze backbone (requires_grad=False + kept in eval mode) to preserve
+        # pretrained weights and avoid catastrophic forgetting.
+        self.set_backbone_frozen(freeze_backbone)
 
         # Apply torch.compile for optimization (PyTorch 2.0+)
         # Skip on MPS — the inductor backend generates invalid Metal shaders.

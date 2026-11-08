@@ -146,11 +146,10 @@ def main():
     trainer_phase1.fit(model_twophase, datamodule=data)
 
     # Phase 2: Unfreeze backbone and fine-tune entire model
-    for param in model_twophase.backbone.parameters():
-        param.requires_grad = True
-
+    # (Skip this phase and keep freeze_backbone=True if you want to fully
+    # preserve the pretrained transformer and avoid catastrophic forgetting.)
+    model_twophase.unfreeze_backbone()
     model_twophase._lr = 1e-5  # Much lower LR for fine-tuning
-    model_twophase.freeze_backbone = False
 
     trainer_phase2 = AutoTrainer(
         max_epochs=15,

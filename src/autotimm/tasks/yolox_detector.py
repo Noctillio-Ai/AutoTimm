@@ -173,6 +173,7 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
             num_convs=2,
             prior_prob=0.01,
             activation="silu",
+            strides=self.strides,
         )
 
         # Losses
