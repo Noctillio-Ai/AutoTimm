@@ -214,6 +214,7 @@ __all__ = [
     "YOLOXDetector",
     "YOLOXHead",
     "__version__",
+    "check_for_updates",
     "cli_main",
     "compare_backends",
     "compare_methods",
@@ -269,3 +270,9 @@ __all__ = [
     "validate_torchscript_export",
     "visualize_batch",
 ]
+
+# Tell the user (once a day at most, in a background thread) when a newer
+# release is on PyPI. Disable with AUTOTIMM_DISABLE_UPDATE_CHECK=1.
+from autotimm.core.update_check import check_for_updates
+
+check_for_updates(__version__)
