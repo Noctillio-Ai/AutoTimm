@@ -22,10 +22,11 @@ from autotimm.data.transform_config import TransformConfig
 from autotimm.heads import DeepLabV3PlusHead, FCNHead
 from autotimm.losses import get_loss_registry
 from autotimm.losses.segmentation import CombinedSegmentationLoss, DiceLoss
+from autotimm.tasks.backbone_freeze_mixin import BackboneFreezeMixin
 from autotimm.tasks.preprocessing_mixin import PreprocessingMixin
 
 
-class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
+class SemanticSegmentor(PreprocessingMixin, BackboneFreezeMixin, pl.LightningModule):
     """End-to-end semantic segmentation model backed by a timm backbone.
 
     Parameters:
@@ -54,7 +55,12 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         optimizer_kwargs: Additional kwargs for the optimizer.
         scheduler: Scheduler name, dict with 'class' and 'params' keys, or None.
         scheduler_kwargs: Extra kwargs forwarded to the LR scheduler.
-        freeze_backbone: If True, backbone parameters are frozen.
+        freeze_backbone: If ``True``, the pretrained backbone is frozen
+            (``requires_grad=False`` and kept in eval mode) so only the task
+            head is trained. Recommended for transformer backbones (ViT,
+            Swin, DeiT, ...) to avoid catastrophic forgetting. Can be toggled
+            later via ``model.unfreeze_backbone()`` or
+            ``model.freeze_backbone = True/False``.
         compile_model: If ``True`` (default), apply ``torch.compile()`` to the backbone and head
             for faster inference and training. Requires PyTorch 2.0+.
         compile_kwargs: Optional dict of kwargs to pass to ``torch.compile()``.
@@ -274,9 +280,9 @@ class SemanticSegmentor(PreprocessingMixin, pl.LightningModule):
         self._scheduler_kwargs = scheduler_kwargs or {}
         self._num_classes = num_classes
 
-        if freeze_backbone:
-            for param in self.backbone.parameters():
-                param.requires_grad = False
+        # Freeze backbone (requires_grad=False + kept in eval mode) to preserve
+        # pretrained weights and avoid catastrophic forgetting.
+        self.set_backbone_frozen(freeze_backbone)
 
         # Apply torch.compile for optimization (PyTorch 2.0+)
         # Skip on MPS — the inductor backend generates invalid Metal shaders.

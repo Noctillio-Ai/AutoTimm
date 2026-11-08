@@ -161,6 +161,8 @@ pip install autotimm[all]          # Everything
 
 </details>
 
+> **Update notices:** `import autotimm` warns you when a newer release is on PyPI (one anonymous request, at most once a day, never blocking). Upgrade with `pip install -U autotimm`, or turn the check off with `AUTOTIMM_DISABLE_UPDATE_CHECK=1`. See [Update Notifications](https://noctillio-ai.github.io/AutoTimm/getting-started/installation/#update-notifications).
+
 ### Your First Model
 
 ```python

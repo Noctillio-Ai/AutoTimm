@@ -28,6 +28,7 @@ from autotimm.tasks._fcos_targets import (
     compute_fcos_detection_loss,
     decode_fcos_detections,
 )
+from autotimm.tasks.backbone_freeze_mixin import BackboneFreezeMixin
 from autotimm.tasks.preprocessing_mixin import PreprocessingMixin
 
 
@@ -42,7 +43,7 @@ def _temporary_eval_mode(module: nn.Module):
         module.train(was_training)
 
 
-class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
+class InstanceSegmentor(PreprocessingMixin, BackboneFreezeMixin, pl.LightningModule):
     """End-to-end instance segmentation model.
 
     Combines FCOS-style detection with per-instance mask prediction.
@@ -88,7 +89,12 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
         score_thresh: Score threshold for detections during inference.
         nms_thresh: IoU threshold for NMS.
         max_detections_per_image: Maximum detections to keep per image.
-        freeze_backbone: If True, backbone parameters are frozen.
+        freeze_backbone: If ``True``, the pretrained backbone is frozen
+            (``requires_grad=False`` and kept in eval mode) so only the task
+            head is trained. Recommended for transformer backbones (ViT,
+            Swin, DeiT, ...) to avoid catastrophic forgetting. Can be toggled
+            later via ``model.unfreeze_backbone()`` or
+            ``model.freeze_backbone = True/False``.
         roi_pool_size: Size of ROI pooling output (default: 14).
         mask_threshold: Threshold for binarizing predicted masks (default: 0.5).
         strides: FPN output strides. Default (8, 16, 32, 64, 128) for P3-P7.
@@ -259,6 +265,7 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
             num_classes=num_classes,
             num_convs=head_num_convs,
             prior_prob=0.01,
+            strides=strides,
         )
 
         # Mask head
@@ -356,9 +363,9 @@ class InstanceSegmentor(PreprocessingMixin, pl.LightningModule):
             log_gradient_norm=False,
         )
 
-        if freeze_backbone:
-            for param in self.backbone.parameters():
-                param.requires_grad = False
+        # Freeze backbone (requires_grad=False + kept in eval mode) to preserve
+        # pretrained weights and avoid catastrophic forgetting.
+        self.set_backbone_frozen(freeze_backbone)
 
         # Apply torch.compile for optimization (PyTorch 2.0+)
         # Skip on MPS — the inductor backend generates invalid Metal shaders.

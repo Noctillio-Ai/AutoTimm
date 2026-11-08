@@ -21,10 +21,11 @@ from autotimm.core.utils import seed_everything
 from autotimm.data.transform_config import TransformConfig
 from autotimm.heads import ClassificationHead
 from autotimm.losses import get_loss_registry
+from autotimm.tasks.backbone_freeze_mixin import BackboneFreezeMixin
 from autotimm.tasks.preprocessing_mixin import PreprocessingMixin
 
 
-class ImageClassifier(PreprocessingMixin, pl.LightningModule):
+class ImageClassifier(PreprocessingMixin, BackboneFreezeMixin, pl.LightningModule):
     """End-to-end image classifier backed by a timm backbone.
 
     Parameters:
@@ -58,8 +59,12 @@ class ImageClassifier(PreprocessingMixin, pl.LightningModule):
         head_dropout: Dropout before the classification linear layer.
         label_smoothing: Label smoothing factor for cross-entropy.
             Not supported with ``multi_label=True`` (raises ``ValueError``).
-        freeze_backbone: If ``True``, backbone parameters are frozen
-            (useful for linear probing).
+        freeze_backbone: If ``True``, the pretrained backbone is frozen
+            (``requires_grad=False`` and kept in eval mode) so only the task
+            head is trained. Recommended for transformer backbones (ViT,
+            Swin, DeiT, ...) to avoid catastrophic forgetting. Can be toggled
+            later via ``model.unfreeze_backbone()`` or
+            ``model.freeze_backbone = True/False``.
         mixup_alpha: If > 0, apply Mixup augmentation with this alpha.
         compile_model: If ``True`` (default), apply ``torch.compile()`` to the backbone and head
             for faster inference and training. Requires PyTorch 2.0+.
@@ -254,9 +259,9 @@ class ImageClassifier(PreprocessingMixin, pl.LightningModule):
         self._mixup_alpha = mixup_alpha
         self._num_classes = num_classes
 
-        if freeze_backbone:
-            for param in self.backbone.parameters():
-                param.requires_grad = False
+        # Freeze backbone (requires_grad=False + kept in eval mode) to preserve
+        # pretrained weights and avoid catastrophic forgetting.
+        self.set_backbone_frozen(freeze_backbone)
 
         # Apply torch.compile for optimization (PyTorch 2.0+)
         # Skip on MPS — the inductor backend generates invalid Metal shaders.

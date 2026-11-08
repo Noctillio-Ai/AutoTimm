@@ -149,6 +149,24 @@ class ScaleModule(nn.Module):
         return x * self.scale
 
 
+DEFAULT_HEAD_STRIDES: tuple[int, ...] = (8, 16, 32, 64, 128)
+
+# Upper bound on the regression logit before exp(): exp(10) * stride is far
+# beyond any image size, and the clamp keeps exp() from overflowing.
+_MAX_REG_LOGIT = 10.0
+
+
+def _decode_ltrb(logits: torch.Tensor, stride: float) -> torch.Tensor:
+    """Map raw regression logits to positive LTRB pixel distances.
+
+    ``exp(x) * stride`` (as in FCOS): distances start at about one stride
+    and every output keeps a gradient. A ReLU output dies at zero, and a raw
+    linear output starts near 0 px and can go negative, so neither learns
+    pixel-scale box targets.
+    """
+    return torch.exp(logits.clamp(max=_MAX_REG_LOGIT)) * stride
+
+
 class DetectionHead(nn.Module):
     """FCOS-style detection head with classification, regression, and centerness branches.
 
@@ -164,6 +182,8 @@ class DetectionHead(nn.Module):
         prior_prob: Prior probability for focal loss initialization.
         use_group_norm: Whether to use GroupNorm after conv layers.
         num_groups: Number of groups for GroupNorm.
+        strides: Stride of each input feature level. Regression outputs are
+            pixel distances, ``exp(scale * x) * stride``.
     """
 
     def __init__(
@@ -174,10 +194,12 @@ class DetectionHead(nn.Module):
         prior_prob: float = 0.01,
         use_group_norm: bool = True,
         num_groups: int = 32,
+        strides: tuple[int, ...] = DEFAULT_HEAD_STRIDES,
     ):
         super().__init__()
         self.num_classes = num_classes
         self.in_channels = in_channels
+        self.strides = tuple(strides)
 
         # Shared conv layers for classification branch
         cls_convs = []
@@ -210,6 +232,9 @@ class DetectionHead(nn.Module):
         self.scales = nn.ModuleList([ScaleModule(1.0) for _ in range(5)])
 
         self._init_weights(prior_prob)
+
+    def _stride(self, level: int) -> float:
+        return self.strides[min(level, len(self.strides) - 1)]
 
     def _init_weights(self, prior_prob: float):
         for m in self.modules():
@@ -250,8 +275,9 @@ class DetectionHead(nn.Module):
 
             # Regression prediction (with per-level scaling)
             scale_idx = min(i, len(self.scales) - 1)
-            reg_out = self.scales[scale_idx](self.reg_pred(reg_feat))
-            reg_out = F.relu(reg_out)  # Distances must be positive
+            reg_out = _decode_ltrb(
+                self.scales[scale_idx](self.reg_pred(reg_feat)), self._stride(i)
+            )
 
             # Centerness prediction (from regression branch)
             centerness_out = self.centerness_pred(reg_feat)
@@ -274,7 +300,9 @@ class DetectionHead(nn.Module):
 
         cls_out = self.cls_pred(cls_feat)
         scale_idx = min(scale_idx, len(self.scales) - 1)
-        reg_out = F.relu(self.scales[scale_idx](self.reg_pred(reg_feat)))
+        reg_out = _decode_ltrb(
+            self.scales[scale_idx](self.reg_pred(reg_feat)), self._stride(scale_idx)
+        )
         centerness_out = self.centerness_pred(reg_feat)
 
         return cls_out, reg_out, centerness_out
@@ -643,6 +671,8 @@ class YOLOXHead(nn.Module):
         num_groups: Number of groups for GroupNorm.
         use_depthwise: Whether to use depthwise separable convolutions.
         activation: Activation function ("silu" or "relu").
+        strides: Stride of each input feature level. Regression outputs are
+            pixel distances, ``exp(scale * x) * stride``.
 
     Example:
         >>> head = YOLOXHead(in_channels=256, num_classes=80)
@@ -662,11 +692,13 @@ class YOLOXHead(nn.Module):
         num_groups: int = 32,
         use_depthwise: bool = False,
         activation: str = "silu",
+        strides: tuple[int, ...] = DEFAULT_HEAD_STRIDES,
     ):
         super().__init__()
         self.num_classes = num_classes
         self.in_channels = in_channels
         self.use_depthwise = use_depthwise
+        self.strides = tuple(strides)
 
         # Select activation function
         if activation == "silu":
@@ -792,7 +824,10 @@ class YOLOXHead(nn.Module):
 
             # Regression prediction (with per-level scaling)
             scale_idx = min(i, len(self.scales) - 1)
-            reg_out = self.scales[scale_idx](self.reg_pred(reg_feat))
+            stride = self.strides[min(i, len(self.strides) - 1)]
+            reg_out = _decode_ltrb(
+                self.scales[scale_idx](self.reg_pred(reg_feat)), stride
+            )
 
             cls_outputs.append(cls_out)
             reg_outputs.append(reg_out)
