@@ -15,16 +15,19 @@ from autotimm.models.csp_darknet import (
 from autotimm.models.yolox_pafpn import YOLOXPAFPN, build_yolox_pafpn
 from autotimm.models.yolox_scheduler import YOLOXLRScheduler, YOLOXWarmupLR
 from autotimm.models.yolox_utils import (
+    YOLOX_PRETRAINED_URLS,
     get_yolox_model_info,
     list_yolox_backbones,
     list_yolox_heads,
     list_yolox_models,
     list_yolox_necks,
+    load_yolox_pretrained,
 )
 
 __all__ = [
     # YOLOXPAFPN components
     "YOLOXPAFPN",
+    "YOLOX_PRETRAINED_URLS",
     # CSPDarknet components
     "BaseConv",
     "Bottleneck",
@@ -46,4 +49,5 @@ __all__ = [
     # Utilities
     "list_yolox_models",
     "list_yolox_necks",
+    "load_yolox_pretrained",
 ]

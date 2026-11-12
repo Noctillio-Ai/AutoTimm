@@ -5,8 +5,53 @@ https://github.com/Megvii-BaseDetection/YOLOX
 """
 
 import math
+import warnings
 
 from torch.optim.lr_scheduler import _LRScheduler
+
+
+def _fit_phases(
+    total_epochs: int, warmup_epochs: int, no_aug_epochs: int
+) -> tuple[int, int]:
+    """Shrink warmup / no-aug phases that don't fit in ``total_epochs``.
+
+    The official schedule (5 warmup + 15 no-aug) assumes ~300 epochs. On a
+    short run the two phases can cover every epoch, so the main phase never
+    happens and the LR sits at its minimum right after warmup. When that
+    would happen, both phases are scaled down proportionally so they take at
+    most half of training.
+    """
+    warmup_epochs = max(warmup_epochs, 0)
+    no_aug_epochs = max(no_aug_epochs, 0)
+    if warmup_epochs + no_aug_epochs < total_epochs:
+        return warmup_epochs, no_aug_epochs
+
+    budget = total_epochs // 2
+    scale = budget / (warmup_epochs + no_aug_epochs)
+    new_warmup = int(warmup_epochs * scale)
+    if warmup_epochs > 0 and total_epochs > 1:
+        new_warmup = max(new_warmup, 1)
+    new_no_aug = min(int(no_aug_epochs * scale), max(budget - new_warmup, 0))
+    warnings.warn(
+        f"YOLOX schedule: warmup_epochs={warmup_epochs} + "
+        f"no_aug_epochs={no_aug_epochs} >= total_epochs={total_epochs}, which "
+        f"leaves no main training phase. Using warmup_epochs={new_warmup}, "
+        f"no_aug_epochs={new_no_aug} instead.",
+        UserWarning,
+        stacklevel=3,
+    )
+    return new_warmup, new_no_aug
+
+
+def _warmup_lr(base_lr: float, start: float, epoch: int, warmup_epochs: int) -> float:
+    """Linear warmup that is already non-zero in the first epoch.
+
+    Epoch ``e`` (0-based) trains at ``(e + 1) / warmup_epochs`` of the way
+    from ``start`` to ``base_lr``, so the last warmup epoch reaches
+    ``base_lr``. (Using ``e / warmup_epochs`` makes the whole first epoch
+    run at LR 0 when ``start`` is 0, wasting it.)
+    """
+    return start + (base_lr - start) * (epoch + 1) / warmup_epochs
 
 
 class YOLOXLRScheduler(_LRScheduler):
@@ -38,9 +83,10 @@ class YOLOXLRScheduler(_LRScheduler):
         last_epoch: int = -1,
     ):
         self.total_epochs = total_epochs
-        self.warmup_epochs = warmup_epochs
+        self.warmup_epochs, self.no_aug_epochs = _fit_phases(
+            total_epochs, warmup_epochs, no_aug_epochs
+        )
         self.warmup_lr_start = warmup_lr_start
-        self.no_aug_epochs = no_aug_epochs
         self.min_lr_ratio = min_lr_ratio
         self.scheduler_type = scheduler_type
 
@@ -53,8 +99,7 @@ class YOLOXLRScheduler(_LRScheduler):
         if epoch < self.warmup_epochs:
             # Warmup phase: linear warmup
             return [
-                self.warmup_lr_start
-                + (base_lr - self.warmup_lr_start) * epoch / self.warmup_epochs
+                _warmup_lr(base_lr, self.warmup_lr_start, epoch, self.warmup_epochs)
                 for base_lr in self.base_lrs
             ]
 
@@ -112,10 +157,9 @@ class YOLOXWarmupLR(_LRScheduler):
         """Calculate learning rate for current epoch."""
         if self.last_epoch < self.warmup_epochs:
             return [
-                self.warmup_lr_start
-                + (base_lr - self.warmup_lr_start)
-                * self.last_epoch
-                / self.warmup_epochs
+                _warmup_lr(
+                    base_lr, self.warmup_lr_start, self.last_epoch, self.warmup_epochs
+                )
                 for base_lr in self.base_lrs
             ]
         return self.base_lrs

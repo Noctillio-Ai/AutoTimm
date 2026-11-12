@@ -133,9 +133,32 @@ model = YOLOXDetector(
 
 The official YOLOX scheduler has three phases:
 
-1. **Warmup (5 epochs)**: Linear warmup from 0 to base_lr
+1. **Warmup (5 epochs)**: Linear warmup to base_lr (epoch 0 already trains at base_lr / warmup_epochs)
 2. **Main Training (280 epochs)**: Cosine annealing or linear decay
 3. **No Augmentation (15 epochs)**: Fixed minimum LR for stability
+
+!!! note "Short runs"
+    The 5 + 15 epoch phases assume a ~300 epoch run. If `warmup_epochs + no_aug_epochs`
+    is at least `total_epochs`, there would be no main phase and the LR would sit at its
+    minimum right after warmup. In that case both phases are scaled down to fit in half of
+    training, with a warning. Keep `total_epochs` equal to the trainer's `max_epochs`.
+
+### Pretrained Weights
+
+From scratch, YOLOX needs a long schedule before mAP leaves 0. On small datasets, start
+the backbone and neck from the official COCO checkpoint:
+
+```python
+model = YOLOXDetector(
+    model_name="yolox-tiny",
+    num_classes=5,
+    pretrained=True,          # or a path / URL to an official-format .pth
+)
+```
+
+The head is always trained from scratch (the official head has an objectness branch and a
+COCO-sized classifier). Available for `yolox-tiny`, `-s`, `-m`, `-l` and `-x`; AutoTimm's
+`yolox-nano` is not depthwise like the official Nano, so its weights don't fit.
 
 ```python
 # Customize scheduler

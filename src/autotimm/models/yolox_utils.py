@@ -457,3 +457,103 @@ def get_yolox_model_info(model_name: str) -> dict:
         )
 
     return models[model_name]
+
+
+# Official Megvii YOLOX COCO checkpoints (backbone + neck are reused; the
+# official head has an objectness branch AutoTimm's head doesn't, and its
+# classifier is tied to COCO's 80 classes, so the head is always trained).
+YOLOX_PRETRAINED_URLS: dict[str, str] = {
+    "yolox-tiny": "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_tiny.pth",
+    "yolox-s": "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_s.pth",
+    "yolox-m": "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_m.pth",
+    "yolox-l": "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_l.pth",
+    "yolox-x": "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_x.pth",
+}
+
+# Neck layers AutoTimm adds on top of the official YOLOPAFPN (they project
+# every level to a common width for the shared head) - not in the checkpoint.
+_AUTOTIMM_ONLY_NECK_PREFIXES = ("out_proj_n3.", "out_proj_n4.")
+
+
+def load_yolox_pretrained(
+    backbone,
+    neck,
+    model_name: str,
+    source: bool | str = True,
+) -> dict[str, int]:
+    """Load official YOLOX COCO weights into a CSPDarknet backbone and PAFPN neck.
+
+    Args:
+        backbone: ``CSPDarknet`` built with ``build_csp_darknet(model_name)``.
+        neck: ``YOLOXPAFPN`` built with ``build_yolox_pafpn(model_name)``.
+        model_name: YOLOX variant, used to pick the official checkpoint.
+        source: ``True`` for the official checkpoint of ``model_name``, or a
+            local path / URL to an official-format ``.pth`` file.
+
+    Returns:
+        Number of tensors loaded into the backbone and the neck.
+
+    Raises:
+        ValueError: If no official checkpoint exists for ``model_name`` or the
+            checkpoint doesn't match the architecture.
+    """
+    import os
+
+    import torch
+
+    if source is True:
+        if model_name == "yolox-nano":
+            raise ValueError(
+                "Pretrained weights are not available for 'yolox-nano': the "
+                "official YOLOX-Nano uses depthwise convolutions, which "
+                "AutoTimm's 'yolox-nano' does not, so its weights don't fit. "
+                "Use 'yolox-tiny' (5M params) with pretrained=True instead."
+            )
+        if model_name not in YOLOX_PRETRAINED_URLS:
+            raise ValueError(
+                f"No pretrained weights for {model_name!r}. "
+                f"Available: {list(YOLOX_PRETRAINED_URLS)}"
+            )
+        source = YOLOX_PRETRAINED_URLS[model_name]
+
+    if os.path.exists(str(source)):
+        ckpt = torch.load(str(source), map_location="cpu", weights_only=False)
+    else:
+        ckpt = torch.hub.load_state_dict_from_url(
+            str(source), map_location="cpu", weights_only=False, progress=True
+        )
+    state = ckpt.get("model", ckpt) if isinstance(ckpt, dict) else ckpt
+
+    # Official layout: YOLOX.backbone is YOLOPAFPN, whose .backbone is
+    # CSPDarknet. So darknet keys are "backbone.backbone.*" and the PAFPN's
+    # own layers are "backbone.*".
+    backbone_sd, neck_sd = {}, {}
+    for key, value in state.items():
+        if key.startswith("backbone.backbone."):
+            backbone_sd[key[len("backbone.backbone.") :]] = value
+        elif key.startswith("backbone."):
+            neck_sd[key[len("backbone.") :]] = value
+
+    counts = {}
+    for part, module, sd, optional in (
+        ("backbone", backbone, backbone_sd, ()),
+        ("neck", neck, neck_sd, _AUTOTIMM_ONLY_NECK_PREFIXES),
+    ):
+        own = module.state_dict()
+        mismatched = [k for k, v in sd.items() if k in own and own[k].shape != v.shape]
+        missing = [k for k in own if k not in sd and not k.startswith(optional)]
+        if mismatched or missing:
+            raise ValueError(
+                f"Pretrained checkpoint does not match the {model_name!r} "
+                f"{part}: {len(missing)} missing tensors (e.g. {missing[:3]}), "
+                f"{len(mismatched)} with a different shape (e.g. {mismatched[:3]})."
+            )
+        module.load_state_dict({k: v for k, v in sd.items() if k in own}, strict=False)
+        counts[part] = sum(1 for k in sd if k in own)
+
+    logger.info(
+        f"Loaded pretrained YOLOX weights for {model_name}: "
+        f"{counts['backbone']} backbone + {counts['neck']} neck tensors "
+        "(head initialised from scratch)."
+    )
+    return counts
