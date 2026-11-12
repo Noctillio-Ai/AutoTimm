@@ -42,6 +42,12 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
         model_name: YOLOX variant ("yolox-nano", "yolox-tiny", "yolox-s",
             "yolox-m", "yolox-l", "yolox-x")
         num_classes: Number of object classes (excluding background)
+        pretrained: Initialise the backbone and neck from the official YOLOX
+            COCO checkpoint (``True``) or from an official-format ``.pth``
+            path / URL (``str``). The head is always trained from scratch.
+            Not available for ``"yolox-nano"``. Strongly recommended for
+            small datasets: from scratch, YOLOX needs hundreds of epochs on
+            COCO before mAP leaves 0. Default ``False``.
         metrics: MetricManager or list of MetricConfig. Defaults to COCO
             mAP (``MeanAveragePrecision``) on val and test, logged as
             ``val/map``, ``val/map_50``, etc.
@@ -94,6 +100,7 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
         self,
         model_name: str = "yolox-s",
         num_classes: int = 80,
+        pretrained: bool | str = False,
         metrics: MetricManager | list[MetricConfig] | None = None,
         logging_config: LoggingConfig | None = None,
         transform_config: TransformConfig | None = None,
@@ -165,6 +172,10 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
         # Build YOLOX components
         self.backbone = build_csp_darknet(model_name)
         self.neck = build_yolox_pafpn(model_name)
+        if pretrained:
+            from autotimm.models.yolox_utils import load_yolox_pretrained
+
+            load_yolox_pretrained(self.backbone, self.neck, model_name, pretrained)
 
         # Get output channels from neck (uniform across all levels)
         in_channels = self.neck.out_channels

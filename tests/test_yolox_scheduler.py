@@ -19,15 +19,15 @@ def test_yolox_scheduler_warmup():
         scheduler_type="cosine",
     )
 
-    # Initial LR should be 0 (warmup start)
-    assert optimizer.param_groups[0]["lr"] == 0.0
-
-    # After 1 epoch, LR should be 1/5 of base_lr
-    scheduler.step()
+    # Epoch 0 already trains at 1/5 of base_lr (not 0)
     assert abs(optimizer.param_groups[0]["lr"] - 0.01 / 5) < 1e-6
 
-    # After 5 epochs (end of warmup), LR should be base_lr
-    for _ in range(4):
+    # Epoch 1: 2/5 of base_lr
+    scheduler.step()
+    assert abs(optimizer.param_groups[0]["lr"] - 0.01 * 2 / 5) < 1e-6
+
+    # Epoch 4 (last warmup epoch) reaches base_lr
+    for _ in range(3):
         scheduler.step()
     assert abs(optimizer.param_groups[0]["lr"] - 0.01) < 1e-6
 
@@ -122,8 +122,8 @@ def test_yolox_warmup_lr():
         warmup_lr_start=0.0,
     )
 
-    # Initial LR should be 0
-    assert optimizer.param_groups[0]["lr"] == 0.0
+    # First epoch is already non-zero
+    assert abs(optimizer.param_groups[0]["lr"] - 0.01 / 5) < 1e-6
 
     # After warmup, should be at base LR
     for _ in range(5):
@@ -147,9 +147,9 @@ def test_yolox_scheduler_multiple_param_groups():
         warmup_epochs=5,
     )
 
-    # Both groups should start at warmup_lr_start
-    assert optimizer.param_groups[0]["lr"] == 0.0
-    assert optimizer.param_groups[1]["lr"] == 0.0
+    # Both groups start at 1/5 of their own base LR
+    assert abs(optimizer.param_groups[0]["lr"] - 0.01 / 5) < 1e-6
+    assert abs(optimizer.param_groups[1]["lr"] - 0.001 / 5) < 1e-6
 
     # After warmup, should be at respective base LRs
     for _ in range(5):
@@ -157,3 +157,57 @@ def test_yolox_scheduler_multiple_param_groups():
 
     assert abs(optimizer.param_groups[0]["lr"] - 0.01) < 1e-6
     assert abs(optimizer.param_groups[1]["lr"] - 0.001) < 1e-6
+
+
+def test_yolox_scheduler_shrinks_phases_on_short_runs():
+    """warmup + no_aug >= total must not leave the run at min LR.
+
+    Regression: total_epochs=10 with the default warmup=5 / no_aug=15 ran
+    epoch 0 at LR 0 and every epoch from 5 on at min LR.
+    """
+    import pytest
+
+    model = nn.Linear(10, 10)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    with pytest.warns(UserWarning, match="no main training phase"):
+        scheduler = YOLOXLRScheduler(
+            optimizer, total_epochs=10, warmup_epochs=5, no_aug_epochs=15
+        )
+
+    assert scheduler.warmup_epochs + scheduler.no_aug_epochs <= 5
+    assert scheduler.warmup_epochs >= 1
+
+    lrs = []
+    for _ in range(10):
+        lrs.append(optimizer.param_groups[0]["lr"])
+        scheduler.step()
+
+    assert all(lr > 0 for lr in lrs)
+    assert max(lrs) == pytest.approx(0.01)
+    # At least half of training is spent above the minimum LR
+    assert sum(lr > 0.01 * 0.05 + 1e-9 for lr in lrs) >= 5
+
+
+def test_yolox_scheduler_keeps_phases_that_fit():
+    """The official 300-epoch schedule is left untouched (no warning)."""
+    import warnings
+
+    model = nn.Linear(10, 10)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        scheduler = YOLOXLRScheduler(
+            optimizer, total_epochs=300, warmup_epochs=5, no_aug_epochs=15
+        )
+    assert (scheduler.warmup_epochs, scheduler.no_aug_epochs) == (5, 15)
+
+
+def test_yolox_scheduler_single_epoch():
+    """Degenerate 1-epoch runs train at base LR without dividing by zero."""
+    model = nn.Linear(10, 10)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    import pytest
+
+    with pytest.warns(UserWarning):
+        YOLOXLRScheduler(optimizer, total_epochs=1)
+    assert optimizer.param_groups[0]["lr"] == pytest.approx(0.01)
