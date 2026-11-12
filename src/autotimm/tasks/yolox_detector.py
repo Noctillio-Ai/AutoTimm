@@ -42,7 +42,9 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
         model_name: YOLOX variant ("yolox-nano", "yolox-tiny", "yolox-s",
             "yolox-m", "yolox-l", "yolox-x")
         num_classes: Number of object classes (excluding background)
-        metrics: MetricManager or list of MetricConfig (optional)
+        metrics: MetricManager or list of MetricConfig. Defaults to COCO
+            mAP (``MeanAveragePrecision``) on val and test, logged as
+            ``val/map``, ``val/map_50``, etc.
         logging_config: Optional LoggingConfig for enhanced logging
         transform_config: Optional TransformConfig for preprocessing
         lr: Learning rate
@@ -184,21 +186,28 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
         self.cls_loss_weight = cls_loss_weight
         self.reg_loss_weight = reg_loss_weight
 
-        # Metrics
-        if metrics is not None:
-            if isinstance(metrics, list):
-                self._metric_manager = MetricManager(
-                    configs=metrics, num_classes=num_classes
-                )
-            else:
-                self._metric_manager = metrics
-
-            self.val_metrics = self._metric_manager.get_val_metrics()
-            self.test_metrics = self._metric_manager.get_test_metrics()
+        # Metrics. Default to COCO mAP so ``val/map`` (the default checkpoint
+        # and early-stopping monitor) is always logged.
+        if metrics is None:
+            metrics = [
+                MetricConfig(
+                    name="mAP",
+                    backend="torchmetrics",
+                    metric_class="MeanAveragePrecision",
+                    params={"box_format": "xyxy", "iou_type": "bbox"},
+                    stages=["val", "test"],
+                    prog_bar=True,
+                ),
+            ]
+        if isinstance(metrics, list):
+            self._metric_manager = MetricManager(
+                configs=metrics, num_classes=num_classes
+            )
         else:
-            self._metric_manager = None
-            self.val_metrics = nn.ModuleDict()
-            self.test_metrics = nn.ModuleDict()
+            self._metric_manager = metrics
+
+        self.val_metrics = self._metric_manager.get_val_metrics()
+        self.test_metrics = self._metric_manager.get_test_metrics()
 
         # Logging config
         self._logging_config = logging_config or LoggingConfig(
@@ -584,17 +593,22 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
         """Log validation metrics."""
         is_sanity = getattr(self.trainer, "sanity_checking", False)
         prefix = "sanity_val" if is_sanity else "val"
+        self._log_metrics(self.val_metrics, prefix)
 
-        for name, metric in self.val_metrics.items():
-            try:
-                value = metric.compute()
-                if isinstance(value, dict):
-                    for k, v in value.items():
-                        self.log(f"{prefix}/{k}", v)
-                else:
-                    self.log(f"{prefix}/{name}", value)
-            except Exception:
-                pass
+    def _log_metrics(self, metrics: nn.ModuleDict, prefix: str) -> None:
+        """Compute, log and reset ``metrics`` under ``prefix``.
+
+        Dict results (e.g. ``MeanAveragePrecision``) are logged per key;
+        non-scalar entries such as ``classes`` are skipped.
+        """
+        for name, metric in metrics.items():
+            value = metric.compute()
+            if isinstance(value, dict):
+                for k, v in value.items():
+                    if isinstance(v, torch.Tensor) and v.numel() == 1:
+                        self.log(f"{prefix}/{k}", v, prog_bar=(k == "map"))
+            else:
+                self.log(f"{prefix}/{name}", value)
             metric.reset()
 
     def test_step(self, batch: dict[str, Any], batch_idx: int) -> None:
@@ -611,17 +625,7 @@ class YOLOXDetector(PreprocessingMixin, pl.LightningModule):
 
     def on_test_epoch_end(self) -> None:
         """Log test metrics."""
-        for name, metric in self.test_metrics.items():
-            try:
-                value = metric.compute()
-                if isinstance(value, dict):
-                    for k, v in value.items():
-                        self.log(f"test/{k}", v)
-                else:
-                    self.log(f"test/{name}", value)
-            except Exception:
-                pass
-            metric.reset()
+        self._log_metrics(self.test_metrics, "test")
 
     def predict_step(self, batch: Any, batch_idx: int) -> list[dict[str, torch.Tensor]]:
         """Prediction step."""
