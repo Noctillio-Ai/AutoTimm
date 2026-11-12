@@ -404,3 +404,36 @@ class TestMetricManager:
 
         config = manager.get_config_by_name("unknown")
         assert config is None
+
+
+class TestDetectionMetrics:
+    """MeanAveragePrecision lives in torchmetrics.detection, not top level."""
+
+    def _config(self, backend, metric_class):
+        return MetricConfig(
+            name="mAP",
+            backend=backend,
+            metric_class=metric_class,
+            params={"box_format": "xyxy", "iou_type": "bbox"},
+            stages=["val"],
+        )
+
+    def test_torchmetrics_backend_finds_detection_metric(self):
+        from torchmetrics.detection import MeanAveragePrecision
+
+        manager = MetricManager(
+            configs=[self._config("torchmetrics", "MeanAveragePrecision")],
+            num_classes=80,
+        )
+        assert isinstance(manager.get_val_metrics()["mAP"], MeanAveragePrecision)
+
+    def test_custom_backend_drops_auto_injected_kwargs(self):
+        from torchmetrics.detection import MeanAveragePrecision
+
+        manager = MetricManager(
+            configs=[
+                self._config("custom", "torchmetrics.detection.MeanAveragePrecision")
+            ],
+            num_classes=80,
+        )
+        assert isinstance(manager.get_val_metrics()["mAP"], MeanAveragePrecision)

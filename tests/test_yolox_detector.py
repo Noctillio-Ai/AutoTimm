@@ -215,3 +215,40 @@ def test_yolox_detector_configure_optimizers():
 
     # Check base learning rate (scheduler starts with warmup from 0)
     assert scheduler.base_lrs[0] == 0.01
+
+
+def test_yolox_detector_logs_val_map_by_default():
+    """Without explicit metrics, validation must log ``val/map``.
+
+    ``default_checkpoint_monitor`` and early stopping depend on it.
+    """
+    from unittest.mock import patch
+
+    model = YOLOXDetector(model_name="yolox-nano", num_classes=80, metrics=None)
+    model.eval()
+    assert "mAP" in model.val_metrics
+    assert "mAP" in model.test_metrics
+
+    batch = {
+        "image": torch.randn(2, 3, 320, 320),
+        "boxes": [
+            torch.tensor([[10, 10, 50, 50]], dtype=torch.float32),
+            torch.tensor([[20, 20, 60, 60]], dtype=torch.float32),
+        ],
+        "labels": [
+            torch.tensor([0], dtype=torch.int64),
+            torch.tensor([1], dtype=torch.int64),
+        ],
+    }
+    with torch.no_grad():
+        model.validation_step(batch, batch_idx=0)
+
+    logged = {}
+    with patch.object(
+        model, "log", side_effect=lambda k, v, **kw: logged.__setitem__(k, v)
+    ):
+        model._log_metrics(model.val_metrics, "val")
+
+    assert "val/map" in logged
+    assert "val/map_50" in logged
+    assert "val/classes" not in logged  # non-scalar entries are skipped

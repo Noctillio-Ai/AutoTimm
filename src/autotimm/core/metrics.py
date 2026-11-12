@@ -8,6 +8,26 @@ from typing import Any
 import torch
 import torchmetrics
 import torchmetrics.classification
+import torchmetrics.detection
+
+
+def _instantiate_metric(
+    metric_cls: Any,
+    params: dict[str, Any],
+    auto_injected: set[str] | None = None,
+) -> Any:
+    """Construct ``metric_cls``, dropping auto-injected kwargs if rejected.
+
+    ``num_classes`` / ``num_labels`` are injected for convenience, but many
+    metrics (e.g. ``MeanAveragePrecision``) don't accept them.
+    """
+    try:
+        return metric_cls(**params)
+    except (TypeError, ValueError):
+        if not auto_injected:
+            raise
+        filtered = {k: v for k, v in params.items() if k not in auto_injected}
+        return metric_cls(**filtered)
 
 
 @dataclass
@@ -203,7 +223,9 @@ class MetricManager:
                 config.metric_class, params, auto_injected
             )
         elif backend == "custom":
-            return self._create_custom_metric(config.metric_class, params)
+            return self._create_custom_metric(
+                config.metric_class, params, auto_injected
+            )
         else:
             raise ValueError(f"Unknown backend: {backend}")
 
@@ -214,30 +236,26 @@ class MetricManager:
         auto_injected: set[str] | None = None,
     ) -> torchmetrics.Metric:
         """Create a torchmetrics Metric instance."""
-        # Try top-level torchmetrics first, then torchmetrics.classification
-        if hasattr(torchmetrics, metric_class):
-            metric_cls = getattr(torchmetrics, metric_class)
-        elif hasattr(torchmetrics.classification, metric_class):
-            metric_cls = getattr(torchmetrics.classification, metric_class)
-        else:
+        # Try top-level torchmetrics first, then the task submodules that
+        # don't re-export everything at the top level.
+        metric_cls = getattr(torchmetrics, metric_class, None)
+        if metric_cls is None:
+            metric_cls = getattr(torchmetrics.classification, metric_class, None)
+        if metric_cls is None:
+            metric_cls = getattr(torchmetrics.detection, metric_class, None)
+        if metric_cls is None:
             raise ValueError(
                 f"Unknown torchmetrics metric: {metric_class}. "
                 f"Check torchmetrics documentation for available metrics."
             )
 
-        # Try creating the metric.  If it fails due to unexpected kwargs
-        # that were auto-injected, remove them and retry.
-        try:
-            return metric_cls(**params)
-        except (TypeError, ValueError):
-            if not auto_injected:
-                raise
-            # Remove auto-injected params and retry
-            filtered = {k: v for k, v in params.items() if k not in auto_injected}
-            return metric_cls(**filtered)
+        return _instantiate_metric(metric_cls, params, auto_injected)
 
     def _create_custom_metric(
-        self, metric_class: str, params: dict[str, Any]
+        self,
+        metric_class: str,
+        params: dict[str, Any],
+        auto_injected: set[str] | None = None,
     ) -> torch.nn.Module:
         """Create a custom metric from a fully qualified class path."""
         import importlib
@@ -251,7 +269,7 @@ class MetricManager:
         module_path, class_name = metric_class.rsplit(".", 1)
         module = importlib.import_module(module_path)
         metric_cls = getattr(module, class_name)
-        return metric_cls(**params)
+        return _instantiate_metric(metric_cls, params, auto_injected)
 
     def get_train_metrics(self) -> torch.nn.ModuleDict:
         """Return ModuleDict of train metrics for Lightning module."""
